@@ -1,19 +1,51 @@
 /**
  * SI-ANTRI DUKCAPIL - Core Application Engine & RBAC Authentication Manager
- * Kabupaten Kepulauan Sangihe Edition - 8 Lokets Version
+ * Kabupaten Kepulauan Sangihe Edition - Exact Google Sheet 'petugas' Sync
  */
 
 const STORAGE_KEY = 'dukcapil_queue_data_v1';
 const CHANNEL_NAME = 'dukcapil_queue_channel';
 const AUTH_SESSION_KEY = 'dukcapil_user_session_v1';
 const GOOGLE_SHEET_ID = '169cLHhc22o4az0BfJY_OLRmMZDVOtaJ0eaD2y1chQfU';
+const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwaPsDHSsBtQAseheW1rmx7BVMsIX4U4X_wr7LRZLdou4OjfwfE4p7cS75qJcJf33pg/exec';
 
-// Default Officers Credentials (Matching Google Sheet 'petugas' structure: username, password, name, role, loket)
+/**
+ * Send background sync request to Google Apps Script Web App
+ */
+async function syncTicketToGoogleSheet(action, data) {
+  if (!GOOGLE_APPS_SCRIPT_URL) return;
+  try {
+    const payload = {
+      action: action,
+      ...data,
+      timestamp: new Date().toISOString()
+    };
+    await fetch(GOOGLE_APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    console.log(`📡 [GAS Sync Sent] Action: ${action}`, data);
+  } catch (err) {
+    console.warn('⚠️ Google Apps Script sync warning:', err);
+  }
+}
+
+
+// Exact Petugas Accounts from Google Sheet (https://docs.google.com/spreadsheets/d/169cLHhc22o4az0BfJY_OLRmMZDVOtaJ0eaD2y1chQfU)
 const defaultPetugasList = [
-  { username: 'admin', password: '123456', name: 'Administrator Sangihe', role: 'Admin', loket: 'ALL' },
-  { username: 'operator_a', password: '123456', name: 'Petugas Pengurusan Dokumen', role: 'Operator A', loket: '1' },
-  { username: 'operator_b', password: '123456', name: 'Petugas Pengambilan Dokumen', role: 'Operator B', loket: '2' },
-  { username: 'operator_c', password: '123456', name: 'Petugas Pengambilan KTP/KIA', role: 'Operator C', loket: '3' }
+  { username: 'admin', password: '123456', name: 'Davidson Djarang', role: 'admin', loket: 'ALL' },
+  { username: 'Fransin', password: '123456', name: 'Fransin Makaminan', role: 'Operator A', loket: '1' },
+  { username: 'Haryati', password: '123456', name: 'Haryati Sambai', role: 'Operator A', loket: '2' },
+  { username: 'Rina', password: '123456', name: 'Rina Taidi', role: 'Operator A', loket: '3' },
+  { username: 'Sergio', password: '123456', name: 'Sergio Banua', role: 'Operator A', loket: '4' },
+  { username: 'Seane', password: '123456', name: 'Seane Lawere', role: 'Operator B', loket: '5' },
+  { username: 'Jeklin', password: '123456', name: 'Jagulien Buisan', role: 'Operator B', loket: '6' },
+  { username: 'Sosto', password: '123456', name: 'Fransosto Damasing', role: 'Operator C', loket: '7' },
+  { username: 'Yan', password: '123456', name: 'Yan Tinungki', role: 'Operator C', loket: '8' }
 ];
 
 // Default Application State Structure (3 Categories A, B, C & 8 Lokets)
@@ -55,52 +87,37 @@ class AuthEngine {
   // Attempt reading remote Google Sheet 'petugas' tab dynamically
   async loadPetugasFromSheet() {
     try {
-      const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=petugas`;
+      const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=csv`;
       const response = await fetch(url);
       if (response.ok) {
         const text = await response.text();
-        const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
-        if (jsonMatch && jsonMatch[1]) {
-          const data = JSON.parse(jsonMatch[1]);
-          const rows = data.table.rows;
-          const parsedPetugas = [];
+        const lines = text.split('\n');
+        const parsed = [];
 
-          rows.forEach(r => {
-            const cells = r.c;
-            if (cells && cells.length >= 4) {
-              const username = cells[0]?.v ? String(cells[0].v).trim() : '';
-              const password = cells[1]?.v ? String(cells[1].v).trim() : '';
-              const name = cells[2]?.v ? String(cells[2].v).trim() : '';
-              const role = cells[3]?.v ? String(cells[3].v).trim() : '';
-              
-              let loketVal = 'ALL';
-              if (cells.length >= 5 && cells[4]?.v !== null && cells[4]?.v !== undefined) {
-                const rawLoket = String(cells[4].v).trim();
-                const numMatch = rawLoket.match(/\d+/);
-                if (numMatch) {
-                  loketVal = numMatch[0];
-                } else if (rawLoket.toUpperCase().includes('ALL') || rawLoket.toUpperCase().includes('SEMUA')) {
-                  loketVal = 'ALL';
-                }
-              }
-
-              if (username && password) {
-                parsedPetugas.push({ username, password, name: name || username, role: role || 'Operator A', loket: loketVal });
-              }
-            }
-          });
-
-          if (parsedPetugas.length > 0) {
-            this.petugasList = parsedPetugas;
-            console.log('✅ Berhasil memuat data petugas & loket dari Google Sheet:', parsedPetugas.length, 'user');
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+          if (cols.length >= 5 && cols[0] && cols[1]) {
+            parsed.push({
+              username: cols[0],
+              password: cols[1],
+              name: cols[2] || cols[0],
+              role: cols[3] || 'Operator A',
+              loket: cols[4] || 'ALL'
+            });
           }
+        }
+
+        if (parsed.length > 0) {
+          this.petugasList = parsed;
+          console.log('✅ Live sync data petugas dari Google Sheet:', parsed.length, 'user');
         }
       }
     } catch (e) {
-      console.warn('Menggunakan data petugas default (Google Sheet offline/restricted):', e);
+      console.warn('Menggunakan data petugas fallback:', e);
     }
   }
 
+  // Authenticate user by username & password (Case-insensitive username)
   async login(username, password) {
     await this.loadPetugasFromSheet();
     const user = this.petugasList.find(
@@ -111,14 +128,14 @@ class AuthEngine {
       const session = {
         username: user.username,
         name: user.name,
-        role: user.role,
+        role: user.role, // 'admin', 'Operator A', 'Operator B', 'Operator C'
         loket: user.loket || 'ALL',
         loginTime: new Date().toISOString()
       };
       sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
       return { success: true, user: session };
     }
-    return { success: false, message: 'Username atau password tidak ditemukan di Sheet Petugas!' };
+    return { success: false, message: 'Username atau password salah! Periksa data di Sheet Petugas.' };
   }
 
   getCurrentUser() {
@@ -241,6 +258,7 @@ class QueueEngine {
 
     this.state.tickets.push(newTicket);
     this.broadcast('TICKET_CREATED', { ticket: newTicket });
+    syncTicketToGoogleSheet('ADD_TICKET', { ticket: newTicket });
     return newTicket;
   }
 
@@ -264,6 +282,7 @@ class QueueEngine {
       const prevTicket = this.state.tickets.find(t => t.id === this.state.lokets[loketId].activeTicket.id);
       if (prevTicket && prevTicket.status === 'SERVING') {
         prevTicket.status = 'FINISHED';
+        syncTicketToGoogleSheet('UPDATE_STATUS', { ticketId: prevTicket.id, number: prevTicket.number, status: 'FINISHED', loketId: loketId });
       }
     }
 
@@ -276,6 +295,14 @@ class QueueEngine {
     };
 
     this.broadcast('TICKET_CALLED', { ticket: nextTicket, loketId });
+    syncTicketToGoogleSheet('UPDATE_STATUS', { 
+      ticketId: nextTicket.id, 
+      number: nextTicket.number, 
+      categoryCode: nextTicket.categoryCode, 
+      token: nextTicket.token, 
+      status: 'SERVING', 
+      loketId: loketId 
+    });
     return nextTicket;
   }
 
@@ -290,6 +317,13 @@ class QueueEngine {
     };
 
     this.broadcast('TICKET_RECALLED', { ticket: loket.activeTicket, loketId });
+    syncTicketToGoogleSheet('UPDATE_STATUS', { 
+      ticketId: loket.activeTicket.id, 
+      number: loket.activeTicket.number, 
+      status: 'SERVING', 
+      loketId: loketId,
+      isRecall: true 
+    });
     return loket.activeTicket;
   }
 
@@ -306,6 +340,9 @@ class QueueEngine {
     loket.status = 'READY';
 
     this.broadcast('TICKET_SKIPPED', { ticket, loketId });
+    if (ticket) {
+      syncTicketToGoogleSheet('UPDATE_STATUS', { ticketId: ticket.id, number: ticket.number, status: 'SKIPPED', loketId: loketId });
+    }
     return ticket;
   }
 
@@ -322,6 +359,9 @@ class QueueEngine {
     loket.status = 'READY';
 
     this.broadcast('TICKET_FINISHED', { ticket, loketId });
+    if (ticket) {
+      syncTicketToGoogleSheet('UPDATE_STATUS', { ticketId: ticket.id, number: ticket.number, status: 'FINISHED', loketId: loketId });
+    }
     return ticket;
   }
 
@@ -338,6 +378,7 @@ class QueueEngine {
       this.state.lokets[i] = { id: i, name: 'Loket ' + i, activeTicket: null, categoryFilter: 'ALL', status: 'READY' };
     }
     this.broadcast('QUEUE_RESET');
+    syncTicketToGoogleSheet('RESET_QUEUE', {});
   }
 
   // --- AUDIO SYNTHESIS & VOICE CALL ---
