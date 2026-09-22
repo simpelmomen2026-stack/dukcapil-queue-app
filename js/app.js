@@ -475,24 +475,23 @@ class QueueEngine {
     const code = parts[0];
     const digitsRaw = parts[1] || '001';
     
-    // Jeda halus antar angka untuk kejelasan tinggi di ruang tunggu
-    const digitsSpoken = digitsRaw.split('').map(d => digitMap[d] || d).join('... ');
+    // Jeda alami koma antar angka agar suara bersih, jernih, dan tidak gemetar
+    const digitsSpoken = digitsRaw.split('').map(d => digitMap[d] || d).join(', ');
 
-    // Pengucapan santun dan merdu khas panggilan antrian publik
-    const speechText = `Nomor antrian... ${code}... ${digitsSpoken}... silakan menuju ke Loket ${loketNumber}.`;
+    // Pengucapan santun, bersih, dan natural khas pengumuman resmi
+    const speechText = `Nomor antrian ${code}, ${digitsSpoken}, silakan menuju ke Loket ${loketNumber}.`;
 
     const utterance = new SpeechSynthesisUtterance(speechText);
     utterance.lang = 'id-ID';
-    utterance.rate = 0.78; // Tempo lambat/sedang yang tenang dan jelas
-    utterance.pitch = 1.18; // Frequensi nada lebih tinggi (karakter suara perempuan halus)
+    utterance.rate = 0.85; // Tempo sedang yang sangat jelas dan bersih
+    utterance.pitch = 1.0;  // Pitch natural 1.0 untuk menghilangkan efek gemetar/distorsi digital
     utterance.volume = 1.0;
 
-    // Prioritas pencarian suara perempuan bahasa Indonesia
+    // Prioritas pencarian suara perempuan/wanita Bahasa Indonesia
     const voices = window.speechSynthesis.getVoices();
     const indonesianVoices = voices.filter(v => v.lang && (v.lang.includes('id') || v.lang.includes('ID') || v.lang.includes('ind')));
 
     if (indonesianVoices.length > 0) {
-      // Prioritaskan nama voice wanita/natural seperti Gadis, Indah, Damayanti, Google Bahasa Indonesia, dll.
       const femaleVoice = indonesianVoices.find(v => {
         const name = v.name.toLowerCase();
         return name.includes('gadis') || name.includes('indah') || name.includes('damayanti') || 
