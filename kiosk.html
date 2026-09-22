@@ -30,7 +30,13 @@
     <div class="kiosk-welcome">
       <h2>Selamat Datang di Pelayanan DUKCAPIL</h2>
       <p style="color: var(--primary); font-weight: 700;">KABUPATEN KEPULAUAN SANGIHE</p>
-      <p style="color: var(--text-muted); font-size: 1rem; margin-top: 0.25rem;">Silakan pilih jenis dokumen kependudukan yang ingin Anda urus hari ini</p>
+      
+      <!-- Operating Hours Status Banner -->
+      <div id="operatingHoursBanner" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #e0f2fe; border: 1px solid #bae6fd; color: #0369a1; padding: 0.4rem 1.25rem; border-radius: 9999px; font-weight: 700; font-size: 0.88rem; margin-top: 0.5rem;">
+        🕒 Jam Operasional Hari Ini: ...
+      </div>
+
+      <p style="color: var(--text-muted); font-size: 1rem; margin-top: 0.5rem;">Silakan pilih jenis dokumen kependudukan yang ingin Anda urus hari ini</p>
     </div>
 
     <!-- Token / Nomor Unik Input Card -->
@@ -127,6 +133,24 @@
       const btnCloseModal = document.getElementById('btnCloseModal');
       const btnPrintTicket = document.getElementById('btnPrintTicket');
 
+      function updateOperatingBanner() {
+        const opStatus = engine.getTodayOperatingStatus();
+        const banner = document.getElementById('operatingHoursBanner');
+        if (!banner) return;
+
+        if (opStatus.isOpen) {
+          banner.style.background = 'rgba(16, 185, 129, 0.12)';
+          banner.style.borderColor = 'var(--success)';
+          banner.style.color = '#065f46';
+          banner.innerHTML = `🟢 <strong>Hari ${opStatus.dayName}</strong> | Jam Operasional: <strong>${opStatus.openTime} - ${opStatus.closeTime} WITA</strong> (PELAYANAN BUKA)`;
+        } else {
+          banner.style.background = 'rgba(239, 68, 68, 0.12)';
+          banner.style.borderColor = 'var(--danger)';
+          banner.style.color = '#991b1b';
+          banner.innerHTML = `🔴 <strong>Hari ${opStatus.dayName}</strong> | ${opStatus.statusText}`;
+        }
+      }
+
       function updateWaitingCounts(state) {
         document.getElementById('headerTitle').textContent = state.settings.instansiName;
         document.getElementById('headerSubTitle').textContent = state.settings.subTitle || 'KABUPATEN KEPULAUAN SANGIHE';
@@ -138,11 +162,19 @@
             el.textContent = `${waiting} Antrian Menunggu`;
           }
         });
+
+        updateOperatingBanner();
       }
 
       // Handle Category Selection Touch
       document.querySelectorAll('.kiosk-btn-card').forEach(card => {
         card.addEventListener('click', () => {
+          const opStatus = engine.getTodayOperatingStatus();
+          if (!opStatus.isOpen) {
+            alert(`⚠️ MOHON MAAF - PELAYANAN DITUTUP\n\n${opStatus.statusText}\n\nPengambilan tiket antrian baru saat ini tidak dapat dilakukan.`);
+            return;
+          }
+
           const catCode = card.getAttribute('data-cat');
           const token = document.getElementById('inputToken').value.trim();
 

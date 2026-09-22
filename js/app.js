@@ -58,6 +58,14 @@ const defaultState = {
     totalLoket: 8,
     logoUrl: 'images/logo-sangihe.png'
   },
+  operatingHours: [
+    { day: 'Senin', isOpen: true, openTime: '08:00', closeTime: '15:00' },
+    { day: 'Selasa', isOpen: true, openTime: '08:00', closeTime: '15:00' },
+    { day: 'Rabu', isOpen: true, openTime: '08:00', closeTime: '15:00' },
+    { day: 'Kamis', isOpen: true, openTime: '08:00', closeTime: '15:00' },
+    { day: 'Jumat', isOpen: true, openTime: '08:00', closeTime: '11:30' },
+    { day: 'Sabtu', isOpen: true, openTime: '08:00', closeTime: '12:00' }
+  ],
   categories: [
     { code: 'A', name: 'Pengurusan Dokumen Kependudukan', desc: 'Permohonan baru, perubahan data, dan pengurusan seluruh berkas kependudukan', color: '#3b82f6' },
     { code: 'B', name: 'Pengambilan Dokumen', desc: 'Pengambilan fisik dokumen Kartu Keluarga, Akta Kelahiran/Kematian, SKPWNI, dll', color: '#10b981' },
@@ -190,6 +198,9 @@ class QueueEngine {
         const parsed = JSON.parse(data);
         parsed.settings.totalLoket = 8;
         parsed.categories = defaultState.categories;
+        if (!parsed.operatingHours || !Array.isArray(parsed.operatingHours) || parsed.operatingHours.length === 0) {
+          parsed.operatingHours = defaultState.operatingHours;
+        }
         for (let i = 1; i <= 8; i++) {
           if (!parsed.lokets[i]) {
             parsed.lokets[i] = { id: i, name: 'Loket ' + i, activeTicket: null, categoryFilter: 'ALL', status: 'READY' };
@@ -368,6 +379,59 @@ class QueueEngine {
   updateSettings(newSettings) {
     this.state.settings = { ...this.state.settings, ...newSettings };
     this.broadcast('SETTINGS_UPDATED', { settings: this.state.settings });
+  }
+
+  updateOperatingHours(newHours) {
+    this.state.operatingHours = newHours;
+    this.broadcast('OPERATING_HOURS_UPDATED', { operatingHours: this.state.operatingHours });
+  }
+
+  getTodayOperatingStatus() {
+    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const now = new Date();
+    const todayName = dayNames[now.getDay()];
+
+    const schedule = (this.state.operatingHours || defaultState.operatingHours).find(h => h.day === todayName);
+
+    if (!schedule) {
+      return {
+        isOpen: false,
+        dayName: todayName,
+        openTime: '-',
+        closeTime: '-',
+        statusText: `Hari ${todayName} Pelayanan Tutup / Libur`
+      };
+    }
+
+    if (!schedule.isOpen) {
+      return {
+        isOpen: false,
+        dayName: todayName,
+        openTime: schedule.openTime,
+        closeTime: schedule.closeTime,
+        statusText: `Hari ${todayName} Pelayanan Ditutup`
+      };
+    }
+
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const [openH, openM] = (schedule.openTime || '08:00').split(':').map(Number);
+    const [closeH, closeM] = (schedule.closeTime || '15:00').split(':').map(Number);
+    const openMinutes = openH * 60 + openM;
+    const closeMinutes = closeH * 60 + closeM;
+
+    const isOpenNow = currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
+
+    return {
+      isOpen: isOpenNow,
+      dayName: todayName,
+      openTime: schedule.openTime,
+      closeTime: schedule.closeTime,
+      statusText: isOpenNow 
+        ? `PELAYANAN BUKA (${schedule.openTime} - ${schedule.closeTime} WITA)` 
+        : (currentMinutes < openMinutes 
+            ? `BELUM BUKA (Jam Operasional: ${schedule.openTime} - ${schedule.closeTime} WITA)` 
+            : `SUDAH TUTUP (Jam Operasional Hari Ini: ${schedule.openTime} - ${schedule.closeTime} WITA)`)
+    };
   }
 
   resetQueue() {
