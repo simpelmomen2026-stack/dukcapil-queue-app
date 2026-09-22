@@ -460,7 +460,7 @@ class QueueEngine {
     await this.playAirportChime();
 
     if (!('speechSynthesis' in window)) {
-      console.warn('SpeechSynthesis API not supported on this browser.');
+      console.warn('SpeechSynthesis API tidak didukung pada browser ini.');
       return;
     }
 
@@ -475,25 +475,37 @@ class QueueEngine {
     const code = parts[0];
     const digitsRaw = parts[1] || '001';
     
-    const digitsSpoken = digitsRaw.split('').map(d => digitMap[d] || d).join(', ');
+    // Jeda halus antar angka untuk kejelasan tinggi di ruang tunggu
+    const digitsSpoken = digitsRaw.split('').map(d => digitMap[d] || d).join('... ');
 
-    const speechText = `Nomor antrian, ${code}, ${digitsSpoken}, silakan menuju ke Loket ${loketNumber}`;
+    // Pengucapan santun dan merdu khas panggilan antrian publik
+    const speechText = `Nomor antrian... ${code}... ${digitsSpoken}... silakan menuju ke Loket ${loketNumber}.`;
 
     const utterance = new SpeechSynthesisUtterance(speechText);
     utterance.lang = 'id-ID';
-    utterance.rate = 0.85;
-    utterance.pitch = 1.05;
+    utterance.rate = 0.78; // Tempo lambat/sedang yang tenang dan jelas
+    utterance.pitch = 1.18; // Frequensi nada lebih tinggi (karakter suara perempuan halus)
     utterance.volume = 1.0;
 
+    // Prioritas pencarian suara perempuan bahasa Indonesia
     const voices = window.speechSynthesis.getVoices();
-    const idVoice = voices.find(v => v.lang && (v.lang.includes('id') || v.lang.includes('ID') || v.lang.includes('ind')));
-    if (idVoice) {
-      utterance.voice = idVoice;
+    const indonesianVoices = voices.filter(v => v.lang && (v.lang.includes('id') || v.lang.includes('ID') || v.lang.includes('ind')));
+
+    if (indonesianVoices.length > 0) {
+      // Prioritaskan nama voice wanita/natural seperti Gadis, Indah, Damayanti, Google Bahasa Indonesia, dll.
+      const femaleVoice = indonesianVoices.find(v => {
+        const name = v.name.toLowerCase();
+        return name.includes('gadis') || name.includes('indah') || name.includes('damayanti') || 
+               name.includes('female') || name.includes('woman') || name.includes('natural') || 
+               name.includes('google') || name.includes('aris');
+      });
+
+      utterance.voice = femaleVoice || indonesianVoices[0];
     }
 
     setTimeout(() => {
       window.speechSynthesis.speak(utterance);
-    }, 150);
+    }, 200);
   }
 }
 

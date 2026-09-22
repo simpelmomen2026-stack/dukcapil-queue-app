@@ -155,15 +155,21 @@
 
       function activateAudio() {
         engine.unlockAudio();
-        engine.playAirportChime();
         soundText.textContent = 'Suara Panggilan: AKTIF ✅';
         soundBtn.style.borderColor = 'var(--success)';
         soundBtn.style.color = 'var(--success)';
         audioUnlockBanner.classList.add('hidden');
+        engine.speakTicketCall('A-001', 1);
       }
 
       audioUnlockBanner.addEventListener('click', activateAudio);
-      soundBtn.addEventListener('click', activateAudio);
+      soundBtn.addEventListener('click', () => {
+        if (!engine.isAudioUnlocked) {
+          activateAudio();
+        } else {
+          engine.speakTicketCall('A-001', 1);
+        }
+      });
 
       document.body.addEventListener('click', () => {
         if (!engine.isAudioUnlocked) {
