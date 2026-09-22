@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin - DUKCAPIL SANGIHE</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="images/logo-sangihe.png">
+  <style>
+    .login-container {
+      max-width: 440px;
+      margin: 3.5rem auto;
+      padding: 2.5rem;
+      background: linear-gradient(135deg, rgba(14, 27, 46, 0.95) 0%, rgba(10, 25, 47, 0.98) 100%);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .error-alert {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: #fca5a5;
+      padding: 0.65rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+
+    .role-badge-tag {
+      background: rgba(255, 183, 3, 0.15);
+      color: var(--accent-gold);
+      border: 1px solid rgba(255, 183, 3, 0.3);
+      padding: 0.25rem 0.75rem;
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header Navbar -->
+  <header class="app-header">
+    <div class="brand-container">
+      <img src="images/logo-sangihe.png" alt="Logo Pemkab Kepulauan Sangihe" class="brand-logo-img">
+      <div class="brand-text">
+        <h1 id="headerTitle">DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL</h1>
+        <p id="headerSubTitle">KABUPATEN KEPULAUAN SANGIHE</p>
+      </div>
+    </div>
+    <div class="header-clock" style="display: flex; align-items: center; gap: 1rem;">
+      <div id="userBadgeInfo" style="display: none; text-align: right;">
+        <div style="font-size: 0.85rem; font-weight: 700; color: #fff;" id="userNameLabel">Administrator</div>
+        <span class="role-badge-tag" id="userRoleLabel">Admin</span>
+      </div>
+      <div>
+        <div class="clock-time" id="clockTime">00:00:00</div>
+        <div class="clock-date" id="clockDate">Senin, 1 Januari 2026</div>
+      </div>
+      <button id="btnLogout" class="btn btn-outline" style="display: none; padding: 0.4rem 0.85rem; font-size: 0.85rem; color: #ef4444; border-color: rgba(239,68,68,0.4);">
+        🚪 Keluar
+      </button>
+    </div>
+  </header>
+
+  <!-- 1. MANDATORY ADMIN LOGIN CARD (Shown if NOT logged in) -->
+  <div id="loginCard" class="login-container">
+    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🔐</div>
+    <h2 style="font-size: 1.6rem; color: #fff; margin-bottom: 0.25rem;">Login Admin DUKCAPIL</h2>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+      Masukkan username & password akun Administrator (Sheet Petugas)
+    </p>
+
+    <div id="loginErrorMsg" class="error-alert">
+      ⚠️ Username atau password tidak terdaftar di Sheet Petugas!
+    </div>
+
+    <form id="loginForm">
+      <div class="form-group" style="text-align: left;">
+        <label for="loginUsername">Username Admin:</label>
+        <input type="text" id="loginUsername" class="form-control" placeholder="Contoh: admin" required style="font-size: 1rem;">
+      </div>
+
+      <div class="form-group" style="text-align: left;">
+        <label for="loginPassword">Password:</label>
+        <input type="password" id="loginPassword" class="form-control" placeholder="Masukkan password" required style="font-size: 1rem;">
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 1rem;">
+        🔓 Masuk Dashboard Admin
+      </button>
+    </form>
+  </div>
+
+  <!-- 2. ACCESS DENIED CARD (Shown if logged in as Operator non-Admin) -->
+  <div id="accessDeniedCard" class="login-container" style="display: none; border-color: var(--danger);">
+    <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">🚫</div>
+    <h2 style="color: #ef4444; font-size: 1.6rem; margin-bottom: 0.5rem;">Akses Ditolak!</h2>
+    <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;" id="deniedNoticeText">
+      Halaman Dashboard Admin hanya dapat diakses oleh akun dengan Role <strong>Admin</strong>.
+    </p>
+    <button id="btnSwitchAdminUser" class="btn btn-danger btn-lg" style="width: 100%;">
+      🔄 Switch User / Logout & Login Admin
+    </button>
+  </div>
+
+  <!-- 3. MAIN ADMIN DASHBOARD CONTENT (Hidden until logged in as Admin) -->
+  <main class="main-container" id="adminDashboardContent" style="display: none;">
+    
+    <!-- STATS SUMMARY CARDS -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+      
+      <div class="card" style="border-left: 4px solid var(--primary);">
+        <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">TOTAL TIKET HARI INI</div>
+        <div class="stats-card-val" id="statTotalTickets" style="color: var(--primary);">0</div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid var(--success);">
+        <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">SELESAI DILAYANI</div>
+        <div class="stats-card-val" id="statFinished" style="color: var(--success);">0</div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid var(--warning);">
+        <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">SEDANG MENUNGGU</div>
+        <div class="stats-card-val" id="statWaiting" style="color: var(--warning);">0</div>
+      </div>
+
+      <div class="card" style="border-left: 4px solid var(--danger);">
+        <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">DILEWATI (SKIPPED)</div>
+        <div class="stats-card-val" id="statSkipped" style="color: var(--danger);">0</div>
+      </div>
+
+    </div>
+
+    <div class="admin-grid">
+      
+      <!-- LEFT: CONFIGURATION FORM -->
+      <div class="card">
+        <h3 style="color: var(--accent-gold); margin-bottom: 1.5rem;">⚙️ PENGATURAN INSTANSI & LAYAR</h3>
+        
+        <form id="settingsForm">
+          <div class="form-group">
+            <label for="inputInstansi">Nama Instansi Dinas / Pemda:</label>
+            <input type="text" id="inputInstansi" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSubTitle">Sub-Judul / Daerah Kabupaten/Kota:</label>
+            <input type="text" id="inputSubTitle" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputRunningText">Running Text Pengumuman (Display TV):</label>
+            <textarea id="inputRunningText" class="form-control" rows="3" required></textarea>
+          </div>
+
+          <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem;">
+            <input type="checkbox" id="checkVoiceEnabled" style="width: 20px; height: 20px; cursor: pointer;">
+            <label for="checkVoiceEnabled" style="margin: 0; cursor: pointer; color: var(--text-main);">
+              Aktifkan Pemanggil Suara Audio Bahasa Indonesia (Text-to-Speech)
+            </label>
+          </div>
+
+          <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+              💾 Simpan Pengaturan
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- RIGHT: DANGER ZONE & EXPORT -->
+      <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <h3 style="color: var(--danger); margin-bottom: 1rem;">⚠️ KONTROL & RESET ANTRIAN</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Lakukan reset antrian harian setiap awal jam kerja untuk mengembalikan nomor urut antrian ke angka A-001, B-001, dst.
+          </p>
+
+          <button id="btnResetQueue" class="btn btn-danger btn-lg" style="width: 100%; margin-bottom: 1.5rem;">
+            🗑️ Reset Antrian Harian Hari Ini
+          </button>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-glass); padding-top: 1.5rem;">
+          <h4 style="color: var(--accent-gold); margin-bottom: 0.5rem;">REKAPITULASI PELAYANAN SANGIHE</h4>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+            Cetak rekap data pelayanan antrian hari ini.
+          </p>
+          <button id="btnPrintReport" class="btn btn-outline" style="width: 100%;">
+            🖨️ Cetak / Print Rekapitulasi Data
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const engine = window.queueEngine;
+      const auth = window.authEngine;
+
+      const loginCard = document.getElementById('loginCard');
+      const accessDeniedCard = document.getElementById('accessDeniedCard');
+      const adminDashboardContent = document.getElementById('adminDashboardContent');
+      const loginForm = document.getElementById('loginForm');
+      const loginUsername = document.getElementById('loginUsername');
+      const loginPassword = document.getElementById('loginPassword');
+      const loginErrorMsg = document.getElementById('loginErrorMsg');
+      const btnLogout = document.getElementById('btnLogout');
+      const btnSwitchAdminUser = document.getElementById('btnSwitchAdminUser');
+      const userBadgeInfo = document.getElementById('userBadgeInfo');
+      const userNameLabel = document.getElementById('userNameLabel');
+      const userRoleLabel = document.getElementById('userRoleLabel');
+
+      const settingsForm = document.getElementById('settingsForm');
+      const inputInstansi = document.getElementById('inputInstansi');
+      const inputSubTitle = document.getElementById('inputSubTitle');
+      const inputRunningText = document.getElementById('inputRunningText');
+      const checkVoiceEnabled = document.getElementById('checkVoiceEnabled');
+      const btnResetQueue = document.getElementById('btnResetQueue');
+      const btnPrintReport = document.getElementById('btnPrintReport');
+
+      function checkAuth() {
+        const user = auth.getCurrentUser();
+        if (user) {
+          userBadgeInfo.style.display = 'block';
+          btnLogout.style.display = 'inline-flex';
+          userNameLabel.textContent = user.name || user.username;
+          userRoleLabel.textContent = user.role;
+
+          if (user.role === 'Admin') {
+            loginCard.style.display = 'none';
+            accessDeniedCard.style.display = 'none';
+            adminDashboardContent.style.display = 'block';
+            renderAdmin(engine.state);
+          } else {
+            loginCard.style.display = 'none';
+            adminDashboardContent.style.display = 'none';
+            accessDeniedCard.style.display = 'block';
+            document.getElementById('deniedNoticeText').innerHTML = `
+              Anda saat ini terdaftar sebagai <strong>${user.name}</strong> dengan kewenangan <strong>${user.role}</strong>.<br>
+              Halaman Admin ini hanya dapat dibuka oleh akun bertipe <strong>Admin</strong>.
+            `;
+          }
+        } else {
+          loginCard.style.display = 'block';
+          accessDeniedCard.style.display = 'none';
+          adminDashboardContent.style.display = 'none';
+          btnLogout.style.display = 'none';
+          userBadgeInfo.style.display = 'none';
+        }
+      }
+
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const u = loginUsername.value.trim();
+        const p = loginPassword.value.trim();
+
+        const res = await auth.login(u, p);
+        if (res.success) {
+          loginErrorMsg.style.display = 'none';
+          checkAuth();
+        } else {
+          loginErrorMsg.textContent = '⚠️ ' + res.message;
+          loginErrorMsg.style.display = 'block';
+        }
+      });
+
+      function handleLogout() {
+        auth.logout();
+        loginUsername.value = '';
+        loginPassword.value = '';
+        checkAuth();
+      }
+
+      btnLogout.addEventListener('click', handleLogout);
+      btnSwitchAdminUser.addEventListener('click', handleLogout);
+
+      function renderAdmin(state) {
+        document.getElementById('headerTitle').textContent = state.settings.instansiName;
+        document.getElementById('headerSubTitle').textContent = state.settings.subTitle || 'KABUPATEN KEPULAUAN SANGIHE';
+
+        inputInstansi.value = state.settings.instansiName;
+        inputSubTitle.value = state.settings.subTitle || 'KABUPATEN KEPULAUAN SANGIHE';
+        inputRunningText.value = state.settings.runningText;
+        checkVoiceEnabled.checked = state.settings.voiceEnabled;
+
+        document.getElementById('statTotalTickets').textContent = state.tickets.length;
+        document.getElementById('statFinished').textContent = state.tickets.filter(t => t.status === 'FINISHED').length;
+        document.getElementById('statWaiting').textContent = state.tickets.filter(t => t.status === 'WAITING').length;
+        document.getElementById('statSkipped').textContent = state.tickets.filter(t => t.status === 'SKIPPED').length;
+      }
+
+      settingsForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        engine.updateSettings({
+          instansiName: inputInstansi.value.trim(),
+          subTitle: inputSubTitle.value.trim(),
+          runningText: inputRunningText.value.trim(),
+          voiceEnabled: checkVoiceEnabled.checked
+        });
+        alert('✅ Pengaturan sistem berhasil diperbarui!');
+      });
+
+      btnResetQueue.addEventListener('click', () => {
+        if (confirm('Apakah Anda yakin ingin RESET total antrian harian? Semua nomor tiket hari ini akan di-reset ke angka 1.')) {
+          engine.resetQueue();
+          alert('✅ Antrian harian berhasil di-reset!');
+        }
+      });
+
+      btnPrintReport.addEventListener('click', () => {
+        window.print();
+      });
+
+      checkAuth();
+      engine.subscribe((type, payload, state) => {
+        const u = auth.getCurrentUser();
+        if (u && u.role === 'Admin') {
+          renderAdmin(state);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

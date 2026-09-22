@@ -1,0 +1,485 @@
+/**
+ * SI-ANTRI DUKCAPIL - Core Application Engine & RBAC Authentication Manager
+ * Kabupaten Kepulauan Sangihe Edition - 8 Lokets Version
+ */
+
+const STORAGE_KEY = 'dukcapil_queue_data_v1';
+const CHANNEL_NAME = 'dukcapil_queue_channel';
+const AUTH_SESSION_KEY = 'dukcapil_user_session_v1';
+const GOOGLE_SHEET_ID = '169cLHhc22o4az0BfJY_OLRmMZDVOtaJ0eaD2y1chQfU';
+
+// Default Officers Credentials (Matching Google Sheet 'petugas' structure: username, password, name, role, loket)
+const defaultPetugasList = [
+  { username: 'admin', password: '123456', name: 'Administrator Sangihe', role: 'Admin', loket: 'ALL' },
+  { username: 'operator_a', password: '123456', name: 'Petugas Pengurusan Dokumen', role: 'Operator A', loket: '1' },
+  { username: 'operator_b', password: '123456', name: 'Petugas Pengambilan Dokumen', role: 'Operator B', loket: '2' },
+  { username: 'operator_c', password: '123456', name: 'Petugas Pengambilan KTP/KIA', role: 'Operator C', loket: '3' }
+];
+
+// Default Application State Structure (3 Categories A, B, C & 8 Lokets)
+const defaultState = {
+  settings: {
+    instansiName: 'DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL',
+    subTitle: 'KABUPATEN KEPULAUAN SANGIHE',
+    runningText: 'Selamat datang di Dinas Kependudukan dan Pencatatan Sipil Kabupaten Kepulauan Sangihe. Harap menyiapkan berkas persyaratan NIK / Kartu Keluarga sebelum menuju ke Loket Petugas.',
+    voiceEnabled: true,
+    totalLoket: 8,
+    logoUrl: 'images/logo-sangihe.png'
+  },
+  categories: [
+    { code: 'A', name: 'Pengurusan Dokumen Kependudukan', desc: 'Permohonan baru, perubahan data, dan pengurusan seluruh berkas kependudukan', color: '#3b82f6' },
+    { code: 'B', name: 'Pengambilan Dokumen', desc: 'Pengambilan fisik dokumen Kartu Keluarga, Akta Kelahiran/Kematian, SKPWNI, dll', color: '#10b981' },
+    { code: 'C', name: 'Pengambilan KTP / KIA', desc: 'Loket khusus pengambilan fisik KTP-el yang sudah dicetak dan Kartu Identitas Anak', color: '#8b5cf6' }
+  ],
+  lokets: {
+    1: { id: 1, name: 'Loket 1', activeTicket: null, categoryFilter: 'ALL', status: 'READY' },
+    2: { id: 2, name: 'Loket 2', activeTicket: null, categoryFilter: 'ALL', status: 'READY' },
+    3: { id: 3, name: 'Loket 3', activeTicket: null, categoryFilter: 'ALL', status: 'READY' },
+    4: { id: 4, name: 'Loket 4', activeTicket: null, categoryFilter: 'ALL', status: 'READY' },
+    5: { id: 5, name: 'Loket 5', activeTicket: null, categoryFilter: 'ALL', status: 'READY' },
+    6: { id: 6, name: 'Loket 6', activeTicket: null, categoryFilter: 'ALL', status: 'READY' },
+    7: { id: 7, name: 'Loket 7', activeTicket: null, categoryFilter: 'ALL', status: 'READY' },
+    8: { id: 8, name: 'Loket 8', activeTicket: null, categoryFilter: 'ALL', status: 'READY' }
+  },
+  counters: { A: 0, B: 0, C: 0 },
+  tickets: [],
+  lastCalledTicket: null
+};
+
+class AuthEngine {
+  constructor() {
+    this.petugasList = [...defaultPetugasList];
+    this.loadPetugasFromSheet();
+  }
+
+  // Attempt reading remote Google Sheet 'petugas' tab dynamically
+  async loadPetugasFromSheet() {
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=petugas`;
+      const response = await fetch(url);
+      if (response.ok) {
+        const text = await response.text();
+        const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
+        if (jsonMatch && jsonMatch[1]) {
+          const data = JSON.parse(jsonMatch[1]);
+          const rows = data.table.rows;
+          const parsedPetugas = [];
+
+          rows.forEach(r => {
+            const cells = r.c;
+            if (cells && cells.length >= 4) {
+              const username = cells[0]?.v ? String(cells[0].v).trim() : '';
+              const password = cells[1]?.v ? String(cells[1].v).trim() : '';
+              const name = cells[2]?.v ? String(cells[2].v).trim() : '';
+              const role = cells[3]?.v ? String(cells[3].v).trim() : '';
+              
+              let loketVal = 'ALL';
+              if (cells.length >= 5 && cells[4]?.v !== null && cells[4]?.v !== undefined) {
+                const rawLoket = String(cells[4].v).trim();
+                const numMatch = rawLoket.match(/\d+/);
+                if (numMatch) {
+                  loketVal = numMatch[0];
+                } else if (rawLoket.toUpperCase().includes('ALL') || rawLoket.toUpperCase().includes('SEMUA')) {
+                  loketVal = 'ALL';
+                }
+              }
+
+              if (username && password) {
+                parsedPetugas.push({ username, password, name: name || username, role: role || 'Operator A', loket: loketVal });
+              }
+            }
+          });
+
+          if (parsedPetugas.length > 0) {
+            this.petugasList = parsedPetugas;
+            console.log('✅ Berhasil memuat data petugas & loket dari Google Sheet:', parsedPetugas.length, 'user');
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Menggunakan data petugas default (Google Sheet offline/restricted):', e);
+    }
+  }
+
+  async login(username, password) {
+    await this.loadPetugasFromSheet();
+    const user = this.petugasList.find(
+      p => p.username.toLowerCase() === username.trim().toLowerCase() && String(p.password).trim() === String(password).trim()
+    );
+
+    if (user) {
+      const session = {
+        username: user.username,
+        name: user.name,
+        role: user.role,
+        loket: user.loket || 'ALL',
+        loginTime: new Date().toISOString()
+      };
+      sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+      return { success: true, user: session };
+    }
+    return { success: false, message: 'Username atau password tidak ditemukan di Sheet Petugas!' };
+  }
+
+  getCurrentUser() {
+    try {
+      const data = sessionStorage.getItem(AUTH_SESSION_KEY);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.error(e);
+    }
+    return null;
+  }
+
+  logout() {
+    sessionStorage.removeItem(AUTH_SESSION_KEY);
+  }
+}
+
+class QueueEngine {
+  constructor() {
+    this.state = this.loadState();
+    this.channel = null;
+    this.audioCtx = null;
+    this.isAudioUnlocked = false;
+    
+    if ('BroadcastChannel' in window) {
+      this.channel = new BroadcastChannel(CHANNEL_NAME);
+      this.channel.onmessage = (event) => {
+        this.handleRemoteMessage(event.data);
+      };
+    }
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY) {
+        this.state = this.loadState();
+        this.notifyUI('LOCAL_STORAGE_CHANGE');
+      }
+    });
+
+    this.listeners = [];
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+  }
+
+  loadState() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      if (data) {
+        const parsed = JSON.parse(data);
+        parsed.settings.totalLoket = 8;
+        parsed.categories = defaultState.categories;
+        for (let i = 1; i <= 8; i++) {
+          if (!parsed.lokets[i]) {
+            parsed.lokets[i] = { id: i, name: 'Loket ' + i, activeTicket: null, categoryFilter: 'ALL', status: 'READY' };
+          }
+        }
+        parsed.settings.subTitle = 'KABUPATEN KEPULAUAN SANGIHE';
+        parsed.settings.logoUrl = 'images/logo-sangihe.png';
+        return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to load queue state:', e);
+    }
+    this.saveState(defaultState);
+    return JSON.parse(JSON.stringify(defaultState));
+  }
+
+  saveState(stateToSave) {
+    this.state = stateToSave || this.state;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+    } catch (e) {
+      console.error('Failed to save queue state:', e);
+    }
+  }
+
+  broadcast(type, payload = {}) {
+    this.saveState();
+    const msg = { type, payload, timestamp: Date.now() };
+    if (this.channel) {
+      this.channel.postMessage(msg);
+    }
+    this.notifyUI(type, payload);
+  }
+
+  handleRemoteMessage(data) {
+    this.state = this.loadState();
+    this.notifyUI(data.type, data.payload);
+  }
+
+  subscribe(callback) {
+    this.listeners.push(callback);
+  }
+
+  notifyUI(type, payload) {
+    this.listeners.forEach(cb => cb(type, payload, this.state));
+  }
+
+  // --- ACTIONS ---
+  generateTicket(catCode, token = '') {
+    const code = catCode.toUpperCase();
+    this.state.counters[code] = (this.state.counters[code] || 0) + 1;
+    const numSeq = this.state.counters[code];
+    const ticketNumber = `${code}-${String(numSeq).padStart(3, '0')}`;
+
+    const categoryObj = this.state.categories.find(c => c.code === code);
+    const newTicket = {
+      id: 'T_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      number: ticketNumber,
+      categoryCode: code,
+      categoryName: categoryObj ? categoryObj.name : code,
+      token: token || '-',
+      status: 'WAITING',
+      timestamp: new Date().toISOString(),
+      calledByLoket: null
+    };
+
+    this.state.tickets.push(newTicket);
+    this.broadcast('TICKET_CREATED', { ticket: newTicket });
+    return newTicket;
+  }
+
+  callNextTicket(loketId, categoryFilter = 'ALL') {
+    const waitingTickets = this.state.tickets.filter(t => {
+      if (t.status !== 'WAITING') return false;
+      if (categoryFilter !== 'ALL' && t.categoryCode !== categoryFilter) return false;
+      return true;
+    });
+
+    if (waitingTickets.length === 0) {
+      return null;
+    }
+
+    const nextTicket = waitingTickets[0];
+    nextTicket.status = 'SERVING';
+    nextTicket.calledByLoket = loketId;
+    nextTicket.calledAt = new Date().toISOString();
+
+    if (this.state.lokets[loketId].activeTicket) {
+      const prevTicket = this.state.tickets.find(t => t.id === this.state.lokets[loketId].activeTicket.id);
+      if (prevTicket && prevTicket.status === 'SERVING') {
+        prevTicket.status = 'FINISHED';
+      }
+    }
+
+    this.state.lokets[loketId].activeTicket = nextTicket;
+    this.state.lokets[loketId].status = 'BUSY';
+    this.state.lastCalledTicket = {
+      ticket: nextTicket,
+      loketId: loketId,
+      time: Date.now()
+    };
+
+    this.broadcast('TICKET_CALLED', { ticket: nextTicket, loketId });
+    return nextTicket;
+  }
+
+  recallTicket(loketId) {
+    const loket = this.state.lokets[loketId];
+    if (!loket || !loket.activeTicket) return null;
+
+    this.state.lastCalledTicket = {
+      ticket: loket.activeTicket,
+      loketId: loketId,
+      time: Date.now()
+    };
+
+    this.broadcast('TICKET_RECALLED', { ticket: loket.activeTicket, loketId });
+    return loket.activeTicket;
+  }
+
+  skipTicket(loketId) {
+    const loket = this.state.lokets[loketId];
+    if (!loket || !loket.activeTicket) return null;
+
+    const ticket = this.state.tickets.find(t => t.id === loket.activeTicket.id);
+    if (ticket) {
+      ticket.status = 'SKIPPED';
+    }
+
+    loket.activeTicket = null;
+    loket.status = 'READY';
+
+    this.broadcast('TICKET_SKIPPED', { ticket, loketId });
+    return ticket;
+  }
+
+  finishTicket(loketId) {
+    const loket = this.state.lokets[loketId];
+    if (!loket || !loket.activeTicket) return null;
+
+    const ticket = this.state.tickets.find(t => t.id === loket.activeTicket.id);
+    if (ticket) {
+      ticket.status = 'FINISHED';
+    }
+
+    loket.activeTicket = null;
+    loket.status = 'READY';
+
+    this.broadcast('TICKET_FINISHED', { ticket, loketId });
+    return ticket;
+  }
+
+  updateSettings(newSettings) {
+    this.state.settings = { ...this.state.settings, ...newSettings };
+    this.broadcast('SETTINGS_UPDATED', { settings: this.state.settings });
+  }
+
+  resetQueue() {
+    this.state.counters = { A: 0, B: 0, C: 0 };
+    this.state.tickets = [];
+    this.state.lastCalledTicket = null;
+    for (let i = 1; i <= 8; i++) {
+      this.state.lokets[i] = { id: i, name: 'Loket ' + i, activeTicket: null, categoryFilter: 'ALL', status: 'READY' };
+    }
+    this.broadcast('QUEUE_RESET');
+  }
+
+  // --- AUDIO SYNTHESIS & VOICE CALL ---
+  unlockAudio() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!this.audioCtx && AudioCtx) {
+        this.audioCtx = new AudioCtx();
+      }
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+      this.isAudioUnlocked = true;
+
+      if ('speechSynthesis' in window) {
+        const dummyUtterance = new SpeechSynthesisUtterance('');
+        window.speechSynthesis.speak(dummyUtterance);
+      }
+    } catch (e) {
+      console.warn('Unlock audio failed:', e);
+    }
+  }
+
+  playAirportChime() {
+    return new Promise((resolve) => {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) { resolve(); return; }
+        
+        if (!this.audioCtx) {
+          this.audioCtx = new AudioCtx();
+        }
+
+        if (this.audioCtx.state === 'suspended') {
+          this.audioCtx.resume();
+        }
+
+        const now = this.audioCtx.currentTime;
+
+        const osc1 = this.audioCtx.createOscillator();
+        const osc2 = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'sine';
+
+        osc1.frequency.setValueAtTime(554.37, now); // C#5
+        osc1.frequency.setValueAtTime(659.25, now + 0.25); // E5
+
+        osc2.frequency.setValueAtTime(440.00, now); // A4
+        osc2.frequency.setValueAtTime(554.37, now + 0.25); // C#5
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.audioCtx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.8);
+        osc2.stop(now + 0.8);
+
+        setTimeout(() => {
+          resolve();
+        }, 800);
+      } catch (e) {
+        console.warn('Audio chime failed:', e);
+        resolve();
+      }
+    });
+  }
+
+  async speakTicketCall(ticketNumber, loketNumber) {
+    if (!this.state.settings.voiceEnabled) return;
+    
+    await this.playAirportChime();
+
+    if (!('speechSynthesis' in window)) {
+      console.warn('SpeechSynthesis API not supported on this browser.');
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const digitMap = {
+      '0': 'nol', '1': 'satu', '2': 'dua', '3': 'tiga', '4': 'empat',
+      '5': 'lima', '6': 'enam', '7': 'tujuh', '8': 'delapan', '9': 'sembilan'
+    };
+
+    const parts = ticketNumber.split('-');
+    const code = parts[0];
+    const digitsRaw = parts[1] || '001';
+    
+    const digitsSpoken = digitsRaw.split('').map(d => digitMap[d] || d).join(', ');
+
+    const speechText = `Nomor antrian, ${code}, ${digitsSpoken}, silakan menuju ke Loket ${loketNumber}`;
+
+    const utterance = new SpeechSynthesisUtterance(speechText);
+    utterance.lang = 'id-ID';
+    utterance.rate = 0.85;
+    utterance.pitch = 1.05;
+    utterance.volume = 1.0;
+
+    const voices = window.speechSynthesis.getVoices();
+    const idVoice = voices.find(v => v.lang && (v.lang.includes('id') || v.lang.includes('ID') || v.lang.includes('ind')));
+    if (idVoice) {
+      utterance.voice = idVoice;
+    }
+
+    setTimeout(() => {
+      window.speechSynthesis.speak(utterance);
+    }, 150);
+  }
+}
+
+// Global Engine & Auth Instances
+window.queueEngine = new QueueEngine();
+window.authEngine = new AuthEngine();
+
+function initRealtimeClock() {
+  const clockTimeEl = document.getElementById('clockTime');
+  const clockDateEl = document.getElementById('clockDate');
+  if (!clockTimeEl || !clockDateEl) return;
+
+  function update() {
+    const now = new Date();
+    clockTimeEl.textContent = now.toLocaleTimeString('id-ID', { hour12: false });
+    clockDateEl.textContent = now.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  }
+
+  update();
+  setInterval(update, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initRealtimeClock();
+});

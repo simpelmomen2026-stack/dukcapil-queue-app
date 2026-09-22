@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kios Ambil Antrian - DUKCAPIL SANGIHE</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="images/logo-sangihe.png">
+</head>
+<body class="light-theme">
+
+  <!-- App Header Navbar -->
+  <header class="app-header">
+    <div class="brand-container">
+      <img src="images/logo-sangihe.png" alt="Logo Pemkab Kepulauan Sangihe" class="brand-logo-img">
+      <div class="brand-text">
+        <h1 id="headerTitle">DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL</h1>
+        <p id="headerSubTitle">KABUPATEN KEPULAUAN SANGIHE</p>
+      </div>
+    </div>
+    <div class="header-clock">
+      <div class="clock-time" id="clockTime">00:00:00</div>
+      <div class="clock-date" id="clockDate">Senin, 1 Januari 2026</div>
+    </div>
+  </header>
+
+  <!-- Kiosk Container -->
+  <main class="main-container kiosk-container">
+    
+    <div class="kiosk-welcome">
+      <h2>Selamat Datang di Pelayanan DUKCAPIL</h2>
+      <p style="color: var(--primary); font-weight: 700;">KABUPATEN KEPULAUAN SANGIHE</p>
+      <p style="color: var(--text-muted); font-size: 1rem; margin-top: 0.25rem;">Silakan pilih jenis dokumen kependudukan yang ingin Anda urus hari ini</p>
+    </div>
+
+    <!-- Token / Nomor Unik Input Card -->
+    <div class="card" style="margin-bottom: 2rem; background: rgba(255, 255, 255, 0.95); border: 2px solid rgba(0, 102, 204, 0.2);">
+      <div>
+        <label style="font-size: 0.95rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+          🎟️ Token / Nomor Unik Pendaftaran (Opsional):
+        </label>
+        <input type="text" id="inputToken" class="form-control" placeholder="Masukkan Token / Kode Booking Pendaftaran (Contoh: TKN-8921)" style="background: #ffffff; color: #0f172a; border-color: #cbd5e1; font-family: monospace; font-size: 1.1rem; font-weight: 700; padding: 0.85rem 1rem;">
+      </div>
+    </div>
+
+    <!-- Touch Category Selection Cards (3 Categories A, B, C) -->
+    <div class="kiosk-grid" id="kioskGrid" style="grid-template-columns: repeat(3, 1fr);">
+      
+      <!-- Category A -->
+      <div class="kiosk-btn-card cat-A" data-cat="A">
+        <div class="kiosk-badge-code">A</div>
+        <h3>Pengurusan Dokumen Kependudukan</h3>
+        <p>Permohonan baru, perubahan data, dan pengurusan seluruh berkas kependudukan (KK, Akta, Surat Pindah, IKD, dll).</p>
+        <div class="kiosk-queue-count" id="countCatA">0 Antrian Menunggu</div>
+      </div>
+
+      <!-- Category B -->
+      <div class="kiosk-btn-card cat-B" data-cat="B">
+        <div class="kiosk-badge-code">B</div>
+        <h3>Pengambilan Dokumen</h3>
+        <p>Loket khusus pengambilan fisik dokumen Kartu Keluarga, Akta Kelahiran, Akta Kematian, dan Surat Pindah yang sudah selesai.</p>
+        <div class="kiosk-queue-count" id="countCatB">0 Antrian Menunggu</div>
+      </div>
+
+      <!-- Category C -->
+      <div class="kiosk-btn-card cat-C" data-cat="C">
+        <div class="kiosk-badge-code">C</div>
+        <h3>Pengambilan KTP / KIA</h3>
+        <p>Loket khusus pengambilan fisik Kartu Tanda Penduduk (KTP-el) yang sudah dicetak dan Kartu Identitas Anak (KIA).</p>
+        <div class="kiosk-queue-count" id="countCatC">0 Antrian Menunggu</div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- PRINT TICKET MODAL -->
+  <div class="modal-overlay" id="ticketModal">
+    <div class="ticket-paper">
+      
+      <div class="ticket-header">
+        <h4 id="ticketInstansi">DINAS KEPENDUDUKAN & CATATAN SIPIL</h4>
+        <p style="font-weight: 700; color: #0066cc; font-size: 0.8rem; margin-top: 0.15rem;">KABUPATEN KEPULAUAN SANGIHE</p>
+        <p id="ticketTimestamp" style="margin-top: 0.25rem;">21 September 2026 - 09:30 WITA</p>
+      </div>
+
+      <div class="ticket-number-box">
+        <div class="ticket-service-name" id="ticketCategoryName">PENGURUSAN DOKUMEN</div>
+        <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.25rem;">NOMOR ANTRIAN ANDA:</div>
+        <div class="ticket-num" id="ticketNumberVal">A-001</div>
+      </div>
+
+      <div class="ticket-qr-placeholder">
+        <div>
+          <div style="font-size: 1.2rem;">📱</div>
+          <div>QR TIKET</div>
+        </div>
+      </div>
+
+      <div style="font-size: 0.85rem; color: #475569; margin: 0.75rem 0; font-family: monospace;">
+        Token / Nomor Unik: <strong id="ticketTokenVal" style="color: #0066cc; font-size: 1rem;">-</strong>
+      </div>
+
+      <div class="ticket-footer">
+        <p id="ticketWaitingEstimate">Mohon menunggu panggilan di Ruang Tunggu</p>
+        <p style="margin-top: 0.35rem; font-weight: 600; color: #0066cc;">"Pelayanan DUKCAPIL Sangihe Cepat, Mudah & Gratis!"</p>
+      </div>
+
+      <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem; justify-content: center;">
+        <button id="btnPrintTicket" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+          🖨️ Cetak Tiket
+        </button>
+        <button id="btnCloseModal" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.9rem; color: #0f172a; border-color: #cbd5e1;">
+          Selesai / Ambil Lain
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const engine = window.queueEngine;
+
+      const ticketModal = document.getElementById('ticketModal');
+      const btnCloseModal = document.getElementById('btnCloseModal');
+      const btnPrintTicket = document.getElementById('btnPrintTicket');
+
+      function updateWaitingCounts(state) {
+        document.getElementById('headerTitle').textContent = state.settings.instansiName;
+        document.getElementById('headerSubTitle').textContent = state.settings.subTitle || 'KABUPATEN KEPULAUAN SANGIHE';
+
+        ['A', 'B', 'C'].forEach(code => {
+          const waiting = state.tickets.filter(t => t.categoryCode === code && t.status === 'WAITING').length;
+          const el = document.getElementById(`countCat${code}`);
+          if (el) {
+            el.textContent = `${waiting} Antrian Menunggu`;
+          }
+        });
+      }
+
+      // Handle Category Selection Touch
+      document.querySelectorAll('.kiosk-btn-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const catCode = card.getAttribute('data-cat');
+          const token = document.getElementById('inputToken').value.trim();
+
+          // Generate Ticket with Token
+          const ticket = engine.generateTicket(catCode, token);
+
+          // Populate Ticket Modal
+          document.getElementById('ticketInstansi').textContent = engine.state.settings.instansiName;
+          document.getElementById('ticketTimestamp').textContent = new Date().toLocaleString('id-ID');
+          document.getElementById('ticketCategoryName').textContent = ticket.categoryName;
+          document.getElementById('ticketNumberVal').textContent = ticket.number;
+          document.getElementById('ticketTokenVal').textContent = ticket.token || '-';
+
+          const waitingBefore = engine.state.tickets.filter(t => t.categoryCode === catCode && t.status === 'WAITING').length - 1;
+          document.getElementById('ticketWaitingEstimate').textContent = waitingBefore > 0 
+            ? `Ada ${waitingBefore} antrian di depan Anda` 
+            : 'Anda adalah antrian paling awal saat ini';
+
+          // Clear token input field
+          document.getElementById('inputToken').value = '';
+
+          // Show Modal
+          ticketModal.classList.add('active');
+        });
+      });
+
+      btnCloseModal.addEventListener('click', () => {
+        ticketModal.classList.remove('active');
+      });
+
+      btnPrintTicket.addEventListener('click', () => {
+        window.print();
+      });
+
+      // Initial Update & Subscription
+      updateWaitingCounts(engine.state);
+      engine.subscribe((type, payload, state) => {
+        updateWaitingCounts(state);
+      });
+    });
+  </script>
+</body>
+</html>

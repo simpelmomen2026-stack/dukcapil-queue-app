@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Operator Loket - DUKCAPIL SANGIHE</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="images/logo-sangihe.png">
+  <style>
+    .login-container {
+      max-width: 440px;
+      margin: 3.5rem auto;
+      padding: 2.5rem;
+      background: linear-gradient(135deg, rgba(14, 27, 46, 0.95) 0%, rgba(10, 25, 47, 0.98) 100%);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .error-alert {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: #fca5a5;
+      padding: 0.65rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+
+    .role-badge-tag {
+      background: rgba(255, 183, 3, 0.15);
+      color: var(--accent-gold);
+      border: 1px solid rgba(255, 183, 3, 0.3);
+      padding: 0.25rem 0.75rem;
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .loket-locked-badge {
+      background: rgba(0, 102, 204, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(0, 102, 204, 0.4);
+      padding: 0.4rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header Navbar -->
+  <header class="app-header">
+    <div class="brand-container">
+      <img src="images/logo-sangihe.png" alt="Logo Pemkab Kepulauan Sangihe" class="brand-logo-img">
+      <div class="brand-text">
+        <h1 id="headerTitle">DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL</h1>
+        <p id="headerSubTitle">KABUPATEN KEPULAUAN SANGIHE</p>
+      </div>
+    </div>
+    <div class="header-clock" style="display: flex; align-items: center; gap: 1rem;">
+      <div id="userBadgeInfo" style="display: none; text-align: right;">
+        <div style="font-size: 0.85rem; font-weight: 700; color: #fff;" id="userNameLabel">Nama Petugas</div>
+        <span class="role-badge-tag" id="userRoleLabel">Operator A</span>
+        <span class="role-badge-tag" id="userLoketBadge" style="background: rgba(16,185,129,0.2); color: #34d399; border-color: rgba(16,185,129,0.4);">Loket 1</span>
+      </div>
+      <div>
+        <div class="clock-time" id="clockTime">00:00:00</div>
+        <div class="clock-date" id="clockDate">Senin, 1 Januari 2026</div>
+      </div>
+      <button id="btnLogout" class="btn btn-outline" style="display: none; padding: 0.4rem 0.85rem; font-size: 0.85rem; color: #ef4444; border-color: rgba(239,68,68,0.4);">
+        🚪 Keluar
+      </button>
+    </div>
+  </header>
+
+  <!-- 1. MANDATORY OFFICER LOGIN CARD (Shown if NOT logged in) -->
+  <div id="loginCard" class="login-container">
+    <div style="font-size: 3rem; margin-bottom: 0.5rem;">👨‍💼</div>
+    <h2 style="font-size: 1.6rem; color: #fff; margin-bottom: 0.25rem;">Login Petugas Loket</h2>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+      Masukkan username & password petugas sesuai Sheet Petugas (Role & Loket 1 s.d. 8 otomatis terikat)
+    </p>
+
+    <div id="loginErrorMsg" class="error-alert">
+      ⚠️ Username atau password tidak terdaftar di Sheet Petugas!
+    </div>
+
+    <form id="loginForm">
+      <div class="form-group" style="text-align: left;">
+        <label for="loginUsername">Username Petugas:</label>
+        <input type="text" id="loginUsername" class="form-control" placeholder="Contoh: admin atau operator_a" required style="font-size: 1rem;">
+      </div>
+
+      <div class="form-group" style="text-align: left;">
+        <label for="loginPassword">Password:</label>
+        <input type="password" id="loginPassword" class="form-control" placeholder="Masukkan password" required style="font-size: 1rem;">
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 1rem;">
+        🔓 Masuk Panel Loket
+      </button>
+    </form>
+
+    <div style="margin-top: 1.5rem; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-glass); padding-top: 1rem;">
+      Default Demo: operator_a (Loket 1) | operator_b (Loket 2) | operator_c (Loket 3) | admin (Loket All)
+    </div>
+  </div>
+
+  <!-- 2. MAIN LOKET CONTROL PANEL (Hidden until logged in) -->
+  <main class="main-container" id="loketMainPanel" style="display: none;">
+    <div class="loket-layout">
+      
+      <!-- LEFT SIDEBAR: SELECT ACTIVE LOKET NUMBER (Loket 1..8) -->
+      <div class="loket-select-sidebar">
+        <h3 style="color: var(--accent-gold); font-size: 1.1rem; margin-bottom: 0.5rem;">PILIH LOKET ANDA</h3>
+        <div id="loketSelectorList">
+          <!-- Loket 1..8 Selector buttons generated via JS -->
+        </div>
+        <div id="loketLockNotice" class="loket-locked-badge" style="display: none;">
+          🔒 Terkunci di Loket <span id="lockedLoketNum">1</span> (Sesuai Konfigurasi Sheet Petugas)
+        </div>
+
+        <div class="card" style="margin-top: 1rem; padding: 1rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">
+            FILTER LAYANAN LOKET:
+          </label>
+          <select id="selectCategoryFilter" class="form-control">
+            <option value="ALL">Semua Kategori (General)</option>
+            <option value="A">Kode A - Pengurusan Dokumen</option>
+            <option value="B">Kode B - Pengambilan Dokumen</option>
+            <option value="C">Kode C - Pengambilan KTP / KIA</option>
+          </select>
+          <div id="filterLockNotice" style="display: none; font-size: 0.75rem; color: var(--accent-gold); margin-top: 0.5rem; font-weight: 600;">
+            🔒 Filter terkunci sesuai kewenangan Role Anda.
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT ACTION PANEL -->
+      <div class="loket-action-panel">
+        
+        <!-- CURRENTLY SERVING BOX -->
+        <div class="current-serving-box">
+          <div style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
+            SEDANG DILAYANI DI <span id="activeLoketTitle" style="color: var(--accent-gold); font-weight: 800;">LOKET 1</span>
+          </div>
+
+          <div class="serving-number" id="currentServingNum">---</div>
+
+          <div style="font-size: 1.1rem; color: var(--text-main); font-weight: 600;" id="currentServingService">
+            Belum ada antrian yang dipanggil
+          </div>
+
+          <div style="font-size: 0.95rem; color: var(--accent-gold); font-weight: 700; margin-top: 0.35rem; font-family: monospace;" id="currentServingPemohon">
+            Token / Nomor Unik: -
+          </div>
+        </div>
+
+        <!-- 4 ACTION BUTTONS GRID -->
+        <div class="loket-controls-grid">
+          <button id="btnCallNext" class="btn btn-primary btn-lg" style="grid-column: span 2;">
+            🔔 PANGGIL BERIKUTNYA (CALL NEXT)
+          </button>
+          
+          <button id="btnRecall" class="btn btn-warning btn-lg">
+            📢 PANGGIL ULANG (RECALL)
+          </button>
+          
+          <button id="btnSkip" class="btn btn-outline btn-lg">
+            ⏭️ LEWATI (SKIP)
+          </button>
+
+          <button id="btnFinish" class="btn btn-success btn-lg" style="grid-column: span 4; margin-top: 0.5rem;">
+            ✅ SELESAI PELAYANAN (FINISH)
+          </button>
+        </div>
+
+        <!-- WAITING QUEUE LIST TABLE -->
+        <div class="card" style="margin-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h3 style="font-size: 1.1rem; color: var(--accent-gold);">DAFTAR ANTRIAN MENUNGGU</h3>
+            <span class="badge badge-cat-A" id="waitingCountBadge">0 Antrian</span>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table class="queue-table">
+              <thead>
+                <tr>
+                  <th>No. Tiket</th>
+                  <th>Kategori Layanan</th>
+                  <th>Token / Nomor Unik</th>
+                  <th>Waktu Ambil</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="queueTableBody">
+                <!-- Dynamically populated queue rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const engine = window.queueEngine;
+      const auth = window.authEngine;
+
+      let currentLoketId = 1;
+      let currentCategoryFilter = 'ALL';
+      let isLoketLocked = false;
+
+      const loginCard = document.getElementById('loginCard');
+      const loketMainPanel = document.getElementById('loketMainPanel');
+      const loginForm = document.getElementById('loginForm');
+      const loginUsername = document.getElementById('loginUsername');
+      const loginPassword = document.getElementById('loginPassword');
+      const loginErrorMsg = document.getElementById('loginErrorMsg');
+      const btnLogout = document.getElementById('btnLogout');
+      const userBadgeInfo = document.getElementById('userBadgeInfo');
+      const userNameLabel = document.getElementById('userNameLabel');
+      const userRoleLabel = document.getElementById('userRoleLabel');
+      const userLoketBadge = document.getElementById('userLoketBadge');
+
+      const loketSelectorList = document.getElementById('loketSelectorList');
+      const loketLockNotice = document.getElementById('loketLockNotice');
+      const lockedLoketNum = document.getElementById('lockedLoketNum');
+
+      const selectCategoryFilter = document.getElementById('selectCategoryFilter');
+      const filterLockNotice = document.getElementById('filterLockNotice');
+      const activeLoketTitle = document.getElementById('activeLoketTitle');
+      const currentServingNum = document.getElementById('currentServingNum');
+      const currentServingService = document.getElementById('currentServingService');
+      const currentServingPemohon = document.getElementById('currentServingPemohon');
+      const queueTableBody = document.getElementById('queueTableBody');
+      const waitingCountBadge = document.getElementById('waitingCountBadge');
+
+      const btnCallNext = document.getElementById('btnCallNext');
+      const btnRecall = document.getElementById('btnRecall');
+      const btnSkip = document.getElementById('btnSkip');
+      const btnFinish = document.getElementById('btnFinish');
+
+      function checkAuth() {
+        const user = auth.getCurrentUser();
+        if (user) {
+          loginCard.style.display = 'none';
+          loketMainPanel.style.display = 'block';
+          btnLogout.style.display = 'inline-flex';
+          userBadgeInfo.style.display = 'block';
+
+          userNameLabel.textContent = user.name || user.username;
+          userRoleLabel.textContent = user.role;
+
+          if (user.role !== 'Admin' && user.loket && user.loket !== 'ALL') {
+            currentLoketId = parseInt(user.loket) || 1;
+            isLoketLocked = true;
+            userLoketBadge.textContent = `Loket ${currentLoketId}`;
+            loketLockNotice.style.display = 'block';
+            lockedLoketNum.textContent = currentLoketId;
+          } else {
+            isLoketLocked = false;
+            userLoketBadge.textContent = user.loket === 'ALL' ? 'Semua Loket' : `Loket ${currentLoketId}`;
+            loketLockNotice.style.display = 'none';
+          }
+
+          if (user.role === 'Operator A') {
+            currentCategoryFilter = 'A';
+            selectCategoryFilter.value = 'A';
+            selectCategoryFilter.disabled = true;
+            filterLockNotice.style.display = 'block';
+          } else if (user.role === 'Operator B') {
+            currentCategoryFilter = 'B';
+            selectCategoryFilter.value = 'B';
+            selectCategoryFilter.disabled = true;
+            filterLockNotice.style.display = 'block';
+          } else if (user.role === 'Operator C') {
+            currentCategoryFilter = 'C';
+            selectCategoryFilter.value = 'C';
+            selectCategoryFilter.disabled = true;
+            filterLockNotice.style.display = 'block';
+          } else {
+            selectCategoryFilter.disabled = false;
+            filterLockNotice.style.display = 'none';
+          }
+
+          renderLoketSelectors();
+          renderLoketPanel(engine.state);
+        } else {
+          loginCard.style.display = 'block';
+          loketMainPanel.style.display = 'none';
+          btnLogout.style.display = 'none';
+          userBadgeInfo.style.display = 'none';
+        }
+      }
+
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const u = loginUsername.value.trim();
+        const p = loginPassword.value.trim();
+
+        const res = await auth.login(u, p);
+        if (res.success) {
+          loginErrorMsg.style.display = 'none';
+          checkAuth();
+        } else {
+          loginErrorMsg.textContent = '⚠️ ' + res.message;
+          loginErrorMsg.style.display = 'block';
+        }
+      });
+
+      btnLogout.addEventListener('click', () => {
+        auth.logout();
+        loginUsername.value = '';
+        loginPassword.value = '';
+        checkAuth();
+      });
+
+      function renderLoketSelectors() {
+        loketSelectorList.innerHTML = '';
+        for (let i = 1; i <= engine.state.settings.totalLoket; i++) {
+          const btn = document.createElement('button');
+          btn.className = `loket-selector-btn ${i === currentLoketId ? 'active' : ''}`;
+          
+          if (isLoketLocked && i !== currentLoketId) {
+            btn.style.opacity = '0.4';
+            btn.style.cursor = 'not-allowed';
+            btn.disabled = true;
+          }
+
+          btn.innerHTML = `
+            <span>Loket ${i}</span>
+            <span style="font-size: 0.8rem; opacity: 0.8;">${engine.state.lokets[i]?.activeTicket ? engine.state.lokets[i].activeTicket.number : 'Kosong'}</span>
+          `;
+          btn.addEventListener('click', () => {
+            if (!isLoketLocked) {
+              currentLoketId = i;
+              renderLoketSelectors();
+              renderLoketPanel(engine.state);
+            }
+          });
+          loketSelectorList.appendChild(btn);
+        }
+      }
+
+      function renderLoketPanel(state) {
+        document.getElementById('headerTitle').textContent = state.settings.instansiName;
+        document.getElementById('headerSubTitle').textContent = state.settings.subTitle || 'KABUPATEN KEPULAUAN SANGIHE';
+        activeLoketTitle.textContent = `LOKET ${currentLoketId}`;
+
+        const activeLoket = state.lokets[currentLoketId];
+        const ticket = activeLoket ? activeLoket.activeTicket : null;
+
+        if (ticket) {
+          currentServingNum.textContent = ticket.number;
+          currentServingService.textContent = ticket.categoryName;
+          currentServingPemohon.textContent = `Token / Nomor Unik: ${ticket.token || '-'}`;
+        } else {
+          currentServingNum.textContent = '---';
+          currentServingService.textContent = 'Belum ada antrian yang dipanggil';
+          currentServingPemohon.textContent = 'Klik "PANGGIL BERIKUTNYA" untuk memanggil pemohon antrian';
+        }
+
+        const waitingTickets = state.tickets.filter(t => {
+          if (t.status !== 'WAITING') return false;
+          if (currentCategoryFilter !== 'ALL' && t.categoryCode !== currentCategoryFilter) return false;
+          return true;
+        });
+
+        waitingCountBadge.textContent = `${waitingTickets.length} Antrian Menunggu`;
+        queueTableBody.innerHTML = '';
+
+        if (waitingTickets.length === 0) {
+          queueTableBody.innerHTML = `
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                Tidak ada antrian yang sedang menunggu di kategori ini.
+              </td>
+            </tr>
+          `;
+        } else {
+          waitingTickets.forEach(t => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td style="font-family: 'Outfit', sans-serif; font-weight: 800; color: var(--accent-gold); font-size: 1.1rem;">${t.number}</td>
+              <td><span class="badge badge-cat-${t.categoryCode}">${t.categoryName}</span></td>
+              <td style="font-family: monospace; font-weight: 700; color: var(--primary);">${t.token || '-'}</td>
+              <td style="font-size: 0.85rem; color: var(--text-muted);">${new Date(t.timestamp).toLocaleTimeString('id-ID')}</td>
+              <td><span style="color: var(--warning); font-size: 0.8rem; font-weight: 700;">MENUNGGU</span></td>
+            `;
+            queueTableBody.appendChild(tr);
+          });
+        }
+      }
+
+      selectCategoryFilter.addEventListener('change', (e) => {
+        currentCategoryFilter = e.target.value;
+        renderLoketPanel(engine.state);
+      });
+
+      btnCallNext.addEventListener('click', () => {
+        const nextTicket = engine.callNextTicket(currentLoketId, currentCategoryFilter);
+        if (!nextTicket) {
+          alert('Tidak ada antrian yang sedang menunggu!');
+        }
+      });
+
+      btnRecall.addEventListener('click', () => {
+        const activeLoket = engine.state.lokets[currentLoketId];
+        if (!activeLoket || !activeLoket.activeTicket) {
+          alert('Tidak ada antrian yang sedang aktif di loket ini!');
+          return;
+        }
+        engine.recallTicket(currentLoketId);
+      });
+
+      btnSkip.addEventListener('click', () => {
+        const activeLoket = engine.state.lokets[currentLoketId];
+        if (!activeLoket || !activeLoket.activeTicket) return;
+        if (confirm(`Lewati nomor antrian ${activeLoket.activeTicket.number}?`)) {
+          engine.skipTicket(currentLoketId);
+        }
+      });
+
+      btnFinish.addEventListener('click', () => {
+        const activeLoket = engine.state.lokets[currentLoketId];
+        if (!activeLoket || !activeLoket.activeTicket) return;
+        engine.finishTicket(currentLoketId);
+      });
+
+      checkAuth();
+      engine.subscribe((type, payload, state) => {
+        if (auth.getCurrentUser()) {
+          renderLoketSelectors();
+          renderLoketPanel(state);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

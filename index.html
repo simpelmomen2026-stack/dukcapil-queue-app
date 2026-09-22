@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SI-ANTRI DUKCAPIL - Kabupaten Kepulauan Sangihe</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="images/logo-sangihe.png">
+</head>
+<body>
+
+  <!-- App Header Navbar -->
+  <header class="app-header">
+    <div class="brand-container">
+      <img src="images/logo-sangihe.png" alt="Logo Pemkab Kepulauan Sangihe" class="brand-logo-img">
+      <div class="brand-text">
+        <h1 id="headerTitle">DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL</h1>
+        <p id="headerSubTitle">KABUPATEN KEPULAUAN SANGIHE</p>
+      </div>
+    </div>
+    <div class="header-clock">
+      <div class="clock-time" id="clockTime">00:00:00</div>
+      <div class="clock-date" id="clockDate">Senin, 1 Januari 2026</div>
+    </div>
+  </header>
+
+  <!-- Main Container Portal -->
+  <main class="main-container">
+    <div class="portal-hero">
+      <h2>Portal Layanan Antrian DUKCAPIL</h2>
+      <p style="color: var(--accent-gold); font-weight: 700; font-size: 1.15rem; margin-top: 0.25rem;">KABUPATEN KEPULAUAN SANGIHE</p>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.5rem;">Sistem Antrian Berbasis 8 Loket Pelayanan & Role User Petugas (Google Sheet Auth Engine)</p>
+    </div>
+
+    <!-- Mode Selector Grid -->
+    <div class="portal-grid">
+      
+      <!-- Option 1: Display TV -->
+      <a href="display.html" target="_blank" class="portal-card">
+        <div class="portal-icon">📺</div>
+        <h3>Display Monitor TV</h3>
+        <p>Tampilan layar besar untuk Ruang Tunggu Pemohon (8 Loket). Bebas dibuka tanpa login, dilengkapi pemanggil suara Bahasa Indonesia.</p>
+        <span class="btn btn-primary">Buka Layar TV ↗</span>
+      </a>
+
+      <!-- Option 2: Kiosk Ambil Tiket -->
+      <a href="kiosk.html" target="_blank" class="portal-card">
+        <div class="portal-icon">🎟️</div>
+        <h3>Kios Ambil Tiket</h3>
+        <p>Layar sentuh mandiri bagi masyarakat untuk mengambil nomor antrian (Input Token / Nomor Unik Pendaftaran).</p>
+        <span class="btn btn-primary">Buka Kios Tiket ↗</span>
+      </a>
+
+      <!-- Option 3: Panel Operator Loket (Memerlukan Login) -->
+      <a href="loket.html" target="_blank" class="portal-card">
+        <div class="portal-icon">👨‍💼</div>
+        <h3>Panel Operator Loket</h3>
+        <p>🔒 <strong>Wajib Login Petugas</strong>. Hak akses & penugasan Loket 1 s.d. 8 otomatis terikat sesuai Role & Sheet Petugas.</p>
+        <span class="btn btn-primary">Buka Panel Loket ↗</span>
+      </a>
+
+      <!-- Option 4: Dashboard Admin (Memerlukan Login Admin) -->
+      <a href="admin.html" target="_blank" class="portal-card">
+        <div class="portal-icon">⚙️</div>
+        <h3>Dashboard Admin</h3>
+        <p>🔒 <strong>Wajib Login Admin</strong>. Pengaturan instansi, running text pengumuman, reset antrian, & rekapitulasi data.</p>
+        <span class="btn btn-outline">Buka Admin ↗</span>
+      </a>
+
+    </div>
+
+    <!-- Quick Demo Testing Controls Card -->
+    <div class="card" style="margin-top: 3rem; text-align: center; background: rgba(0, 102, 204, 0.1); border-color: rgba(0, 102, 204, 0.3);">
+      <h3 style="color: var(--accent-gold); margin-bottom: 0.5rem;">🔑 Kredensial Login Petugas (Sheet Petugas 8 Loket)</h3>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.25rem;">
+        Sistem membaca data akun & penugasan loket dari Sheet <code>petugas</code> pada file Google Sheet <code>169cLHhc22o4az0BfJY_OLRmMZDVOtaJ0eaD2y1chQfU</code>.
+      </p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; text-align: left; margin-bottom: 1.5rem;">
+        <div style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; border-left: 3px solid var(--primary);">
+          <strong style="color: #fff;">Admin</strong><br>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">User: <code>admin</code> | Pass: <code>123456</code></span><br>
+          <span style="font-size: 0.75rem; color: var(--accent-gold);">Akses: All Loket (1-8) & Admin</span>
+        </div>
+        <div style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; border-left: 3px solid var(--cat-a);">
+          <strong style="color: #fff;">Operator A</strong><br>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">User: <code>operator_a</code> | Pass: <code>123456</code></span><br>
+          <span style="font-size: 0.75rem; color: var(--cat-a);">Akses: Terkunci di Loket 1 (Kode A)</span>
+        </div>
+        <div style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; border-left: 3px solid var(--cat-b);">
+          <strong style="color: #fff;">Operator B</strong><br>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">User: <code>operator_b</code> | Pass: <code>123456</code></span><br>
+          <span style="font-size: 0.75rem; color: var(--cat-b);">Akses: Terkunci di Loket 2 (Kode B)</span>
+        </div>
+        <div style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; border-left: 3px solid var(--cat-c);">
+          <strong style="color: #fff;">Operator C</strong><br>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">User: <code>operator_c</code> | Pass: <code>123456</code></span><br>
+          <span style="font-size: 0.75rem; color: var(--cat-c);">Akses: Terkunci di Loket 3 (Kode C)</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <button id="btnSeedDemo" class="btn btn-warning">
+          ⚡ Buat 5 Antrian Sampel Instant
+        </button>
+        <button id="btnResetDemo" class="btn btn-danger">
+          🗑️ Reset Semua Antrian
+        </button>
+      </div>
+      <div id="demoStatusText" style="margin-top: 1rem; font-size: 0.85rem; color: var(--success); font-weight: 600;"></div>
+    </div>
+  </main>
+
+  <!-- Bottom Ticker Bar -->
+  <footer class="ticker-bar">
+    <div class="ticker-label">INFORMASI SANGIHE</div>
+    <div class="ticker-content">
+      <div class="ticker-text" id="runningTextDisplay">
+        Selamat datang di Dinas Kependudukan dan Pencatatan Sipil Kabupaten Kepulauan Sangihe. Harap menyiapkan berkas persyaratan NIK / Kartu Keluarga sebelum menuju ke Loket Petugas.
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const engine = window.queueEngine;
+
+      function applySettings() {
+        const s = engine.state.settings;
+        document.getElementById('headerTitle').textContent = s.instansiName;
+        document.getElementById('headerSubTitle').textContent = s.subTitle || 'KABUPATEN KEPULAUAN SANGIHE';
+        document.getElementById('runningTextDisplay').textContent = s.runningText;
+      }
+      applySettings();
+
+      document.getElementById('btnSeedDemo').addEventListener('click', () => {
+        engine.generateTicket('A', 'TKN-8901');
+        engine.generateTicket('B', 'TKN-8902');
+        engine.generateTicket('A', 'TKN-8903');
+        engine.generateTicket('C', 'TKN-8904');
+        engine.generateTicket('C', 'TKN-8905');
+
+        const statusEl = document.getElementById('demoStatusText');
+        statusEl.textContent = '✅ Berhasil membuat 5 tiket sampel dengan Token (A-001, B-001, A-002, C-001, C-002)! Silakan buka Display TV & Panel Loket.';
+        setTimeout(() => { statusEl.textContent = ''; }, 6000);
+      });
+
+      document.getElementById('btnResetDemo').addEventListener('click', () => {
+        if (confirm('Apakah Anda yakin ingin mengosongkan semua data antrian?')) {
+          engine.resetQueue();
+          const statusEl = document.getElementById('demoStatusText');
+          statusEl.textContent = '🧹 Semua data antrian berhasil di-reset.';
+          setTimeout(() => { statusEl.textContent = ''; }, 4000);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

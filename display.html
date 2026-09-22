@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Display Monitor Antrian - DUKCAPIL SANGIHE</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="images/logo-sangihe.png">
+  <style>
+    .audio-unlock-banner {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(7, 14, 23, 0.88);
+      backdrop-filter: blur(10px);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      cursor: pointer;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    .audio-unlock-banner.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .audio-unlock-card {
+      background: linear-gradient(135deg, rgba(14, 27, 46, 0.95) 0%, rgba(10, 25, 47, 0.98) 100%);
+      border: 2px solid var(--accent-gold);
+      box-shadow: 0 0 50px rgba(255, 183, 3, 0.5);
+      border-radius: var(--radius-lg);
+      padding: 3rem 2.5rem;
+      max-width: 550px;
+    }
+
+    .audio-unlock-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      animation: bounce 1.5s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Audio Unlock Banner Overlay -->
+  <div class="audio-unlock-banner" id="audioUnlockBanner">
+    <div class="audio-unlock-card">
+      <div class="audio-unlock-icon">🔊</div>
+      <h2 style="color: #ffffff; font-size: 1.8rem; margin-bottom: 0.75rem;">AKTIFKAN SUARA PANGGILAN</h2>
+      <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 2rem; line-height: 1.5;">
+        Browser membutuhkan izin interaksi pertama kali untuk memutar suara bel chime dan pemanggil suara Bahasa Indonesia.
+      </p>
+      <button class="btn btn-warning btn-lg" style="width: 100%; font-size: 1.25rem;">
+        👉 KLIK UNTUK MENGAKTIFKAN SUARA AUDIO
+      </button>
+    </div>
+  </div>
+
+  <!-- App Header Navbar -->
+  <header class="app-header">
+    <div class="brand-container">
+      <img src="images/logo-sangihe.png" alt="Logo Pemkab Kepulauan Sangihe" class="brand-logo-img">
+      <div class="brand-text">
+        <h1 id="headerTitle">DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL</h1>
+        <p id="headerSubTitle">KABUPATEN KEPULAUAN SANGIHE</p>
+      </div>
+    </div>
+    <div class="header-clock">
+      <div class="clock-time" id="clockTime">00:00:00</div>
+      <div class="clock-date" id="clockDate">Senin, 1 Januari 2026</div>
+    </div>
+  </header>
+
+  <!-- Sound Audio Activation Control Button -->
+  <button id="btnSoundToggle" class="sound-toggle-btn">
+    <span id="soundIcon">🔊</span> <span id="soundText">Suara Panggilan: TES AUDIO</span>
+  </button>
+
+  <!-- Main Display TV Grid Layout -->
+  <main class="main-container" style="padding-top: 1rem;">
+    <div class="display-layout">
+      
+      <!-- LEFT SIDE: ACTIVE BIG CALL DISPLAY -->
+      <div class="active-call-card" id="activeCallBox">
+        <div class="active-service-tag" id="activeCategoryTag">--- N/A ---</div>
+        <div class="active-number-label">PANGGILAN NOMOR ANTRIAN</div>
+        <div class="active-number-val" id="activeTicketNum">---</div>
+        
+        <div class="active-target-box">
+          <div class="active-target-label">SILAKAN MENUJU KE</div>
+          <div class="active-target-val" id="activeLoketName">LOKET -</div>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDE: ALL LOKETS MONITOR (8 LOKETS) & QUEUE STATS -->
+      <div class="counters-sidebar">
+        
+        <div class="counters-header">
+          <h3>STATUS TERKINI 8 LOKET PELAYANAN</h3>
+        </div>
+
+        <div class="loket-grid" id="loketGrid" style="grid-template-columns: repeat(2, 1fr); gap: 0.65rem;">
+          <!-- Dynamically populated Loket 1..8 cards -->
+        </div>
+
+        <!-- Category Queue Status Breakdown Cards -->
+        <div class="card" style="margin-top: auto; padding: 1rem;">
+          <h4 style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; margin-bottom: 0.75rem;">
+            SISA ANTRIAN MENUNGGU PER LAYANAN
+          </h4>
+          <div id="categoryStatsGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+            <!-- Category stats A, B, C populated via JS -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Bottom Ticker Bar -->
+  <footer class="ticker-bar">
+    <div class="ticker-label">INFORMASI SANGIHE</div>
+    <div class="ticker-content">
+      <div class="ticker-text" id="runningTextDisplay">
+        Selamat datang di Dinas Kependudukan dan Pencatatan Sipil Kabupaten Kepulauan Sangihe. Harap menyiapkan berkas persyaratan NIK / Kartu Keluarga sebelum menuju ke Loket Petugas.
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const engine = window.queueEngine;
+
+      const activeCallBox = document.getElementById('activeCallBox');
+      const activeCategoryTag = document.getElementById('activeCategoryTag');
+      const activeTicketNum = document.getElementById('activeTicketNum');
+      const activeLoketName = document.getElementById('activeLoketName');
+      const loketGrid = document.getElementById('loketGrid');
+      const categoryStatsGrid = document.getElementById('categoryStatsGrid');
+      const soundBtn = document.getElementById('btnSoundToggle');
+      const soundText = document.getElementById('soundText');
+      const audioUnlockBanner = document.getElementById('audioUnlockBanner');
+
+      function activateAudio() {
+        engine.unlockAudio();
+        engine.playAirportChime();
+        soundText.textContent = 'Suara Panggilan: AKTIF ✅';
+        soundBtn.style.borderColor = 'var(--success)';
+        soundBtn.style.color = 'var(--success)';
+        audioUnlockBanner.classList.add('hidden');
+      }
+
+      audioUnlockBanner.addEventListener('click', activateAudio);
+      soundBtn.addEventListener('click', activateAudio);
+
+      document.body.addEventListener('click', () => {
+        if (!engine.isAudioUnlocked) {
+          activateAudio();
+        }
+      }, { once: true });
+
+      function renderDisplay(state) {
+        document.getElementById('headerTitle').textContent = state.settings.instansiName;
+        document.getElementById('headerSubTitle').textContent = state.settings.subTitle || 'KABUPATEN KEPULAUAN SANGIHE';
+        document.getElementById('runningTextDisplay').textContent = state.settings.runningText;
+
+        if (state.lastCalledTicket && state.lastCalledTicket.ticket) {
+          const t = state.lastCalledTicket.ticket;
+          activeCategoryTag.textContent = t.categoryName || `LAYANAN ${t.categoryCode}`;
+          activeTicketNum.textContent = t.number;
+          activeLoketName.textContent = `LOKET ${state.lastCalledTicket.loketId}`;
+        } else {
+          activeCategoryTag.textContent = 'BELUM ADA PANGGILAN';
+          activeTicketNum.textContent = '---';
+          activeLoketName.textContent = 'LOKET -';
+        }
+
+        // Render 8 Lokets
+        loketGrid.innerHTML = '';
+        for (let i = 1; i <= state.settings.totalLoket; i++) {
+          const l = state.lokets[i];
+          const ticketNum = (l && l.activeTicket) ? l.activeTicket.number : '---';
+          const catName = (l && l.activeTicket) ? l.activeTicket.categoryName : 'Kosong';
+
+          const isActive = state.lastCalledTicket && state.lastCalledTicket.loketId === i;
+
+          const card = document.createElement('div');
+          card.className = `loket-card-tv ${isActive ? 'active' : ''}`;
+          card.style.padding = '0.75rem';
+          card.innerHTML = `
+            <div class="loket-title" style="font-size: 0.9rem;">${l ? l.name : 'Loket ' + i}</div>
+            <div class="loket-num" style="font-size: 2rem;">${ticketNum}</div>
+            <div class="loket-cat" style="font-size: 0.68rem; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">${catName}</div>
+          `;
+          loketGrid.appendChild(card);
+        }
+
+        categoryStatsGrid.innerHTML = '';
+        state.categories.forEach(cat => {
+          const waitingCount = state.tickets.filter(t => t.categoryCode === cat.code && t.status === 'WAITING').length;
+          const div = document.createElement('div');
+          div.style.background = 'rgba(255,255,255,0.04)';
+          div.style.padding = '0.5rem 0.75rem';
+          div.style.borderRadius = '8px';
+          div.style.borderLeft = `4px solid ${cat.color}`;
+          div.innerHTML = `
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">Kode ${cat.code}</div>
+            <div style="font-size: 1.1rem; font-weight: 800; color: #fff;">${waitingCount} Antrian</div>
+          `;
+          categoryStatsGrid.appendChild(div);
+        });
+      }
+
+      function handleCallEvent(type, payload, state) {
+        renderDisplay(state);
+
+        if (type === 'TICKET_CALLED' || type === 'TICKET_RECALLED') {
+          activeCallBox.classList.add('calling-animation');
+          setTimeout(() => {
+            activeCallBox.classList.remove('calling-animation');
+          }, 4000);
+
+          if (payload && payload.ticket) {
+            engine.speakTicketCall(payload.ticket.number, payload.loketId);
+          }
+        }
+      }
+
+      renderDisplay(engine.state);
+      engine.subscribe((type, payload, state) => {
+        handleCallEvent(type, payload, state);
+      });
+    });
+  </script>
+</body>
+</html>
