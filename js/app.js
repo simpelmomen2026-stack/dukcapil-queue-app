@@ -530,15 +530,57 @@ class QueueEngine {
 
     window.speechSynthesis.cancel();
 
-    const digitMap = {
-      '0': 'nol', '1': 'satu', '2': 'dua', '3': 'tiga', '4': 'empat',
-      '5': 'lima', '6': 'enam', '7': 'tujuh', '8': 'delapan', '9': 'sembilan'
-    };
+    function convertTwoDigitsToIndonesian(num) {
+      const ones = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan'];
+      if (num < 10) return ones[num];
+      if (num === 10) return 'sepuluh';
+      if (num === 11) return 'sebelas';
+      if (num < 20) return ones[num % 10] + ' belas';
+      
+      const tensDigit = Math.floor(num / 10);
+      const onesDigit = num % 10;
+      if (onesDigit === 0) return ones[tensDigit] + ' puluh';
+      return ones[tensDigit] + ' puluh ' + ones[onesDigit];
+    }
+
+    function convertThreeDigitsToIndonesian(num) {
+      if (num < 100) return convertTwoDigitsToIndonesian(num);
+      const hundredDigit = Math.floor(num / 100);
+      const remainder = num % 100;
+      let hundredStr = (hundredDigit === 1) ? 'seratus' : (convertTwoDigitsToIndonesian(hundredDigit) + ' ratus');
+      if (remainder === 0) return hundredStr;
+      return hundredStr + ' ' + convertTwoDigitsToIndonesian(remainder);
+    }
+
+    function getIndonesianNumberWords(digitsRaw) {
+      const val = parseInt(digitsRaw, 10);
+      if (isNaN(val)) return [digitsRaw];
+
+      const singleDigitMap = {
+        '0': 'nol', '1': 'satu', '2': 'dua', '3': 'tiga', '4': 'empat',
+        '5': 'lima', '6': 'enam', '7': 'tujuh', '8': 'delapan', '9': 'sembilan'
+      };
+
+      // 001 s.d. 009 -> ["nol", "nol", "satu"] s.d. ["nol", "nol", "sembilan"]
+      if (digitsRaw.startsWith('00')) {
+        const lastChar = digitsRaw.charAt(2);
+        return ['nol', 'nol', singleDigitMap[lastChar] || 'satu'];
+      }
+
+      // 010 s.d. 099 -> ["nol", "sepuluh"], ["nol", "sebelas"], ["nol", "dua puluh"], dst.
+      if (digitsRaw.startsWith('0')) {
+        const lastTwoVal = parseInt(digitsRaw.substring(1), 10);
+        return ['nol', convertTwoDigitsToIndonesian(lastTwoVal)];
+      }
+
+      // 100 ke atas (100, 101, dst.) -> ["seratus"], ["seratus satu"], dst.
+      return [convertThreeDigitsToIndonesian(val)];
+    }
 
     const ticketParts = ticketNumber.split('-');
     const code = ticketParts[0];
     const digitsRaw = ticketParts[1] || '001';
-    const digitWords = digitsRaw.split('').map(d => digitMap[d] || d);
+    const numberWords = getIndonesianNumberWords(digitsRaw);
 
     // Cari profil suara perempuan Bahasa Indonesia lembut & hangat
     const voices = window.speechSynthesis.getVoices();
@@ -558,15 +600,14 @@ class QueueEngine {
       }) || indonesianVoices[0];
     }
 
-    // Urutan pemanggilan audio berantai dengan jeda presisi 0.5 detik (Sustain 0.5s per digit)
-    // Menggunakan code.toLowerCase() agar diucapkan murni "a" saja tanpa ucapan "huruf besar"
+    // Urutan pemanggilan audio berantai dengan jeda presisi 0.5 detik
     const sequence = [
       { text: 'Nomor antrian', delayAfter: 350 },
       { text: code.toLowerCase(), delayAfter: 500 } // Diucapkan murni "a" tanpa sebutan "huruf besar"
     ];
 
-    // Jeda 0.5 detik antar pengucapan digit
-    digitWords.forEach((word) => {
+    // Jeda 0.5 detik antar elemen sebutan nomor (misal "nol" -> 0.5s -> "sepuluh")
+    numberWords.forEach((word) => {
       sequence.push({ text: word, delayAfter: 500 });
     });
 
