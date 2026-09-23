@@ -539,16 +539,16 @@ class QueueEngine {
     const code = parts[0];
     const digitsRaw = parts[1] || '001';
     
-    // Jeda koma alami antar angka agar pengucapan jelas dan baku
-    const digitsSpoken = digitsRaw.split('').map(d => digitMap[d] || d).join(', ');
+    // Pengucapan angka tanpa koma antar-digit agar mengalir mulus, tenang, dan bebas gemetar
+    const digitsSpoken = digitsRaw.split('').map(d => digitMap[d] || d).join(' ');
 
-    // Kalimat pengumuman dalam Bahasa Indonesia Baku yang santun, resmi, dan baik
-    const speechText = `Nomor antrian ${code}, ${digitsSpoken}, silakan menuju ke Loket ${loketNumber}.`;
+    // Kalimat pengumuman resmi yang tenang, tenang, dan berwibawa
+    const speechText = `Nomor antrian ${code} ${digitsSpoken}, silakan menuju ke Loket ${loketNumber}.`;
 
     const utterance = new SpeechSynthesisUtterance(speechText);
     utterance.lang = 'id-ID';
-    utterance.rate = 0.88; // Ritme sedang yang sopan, merdu, dan pas untuk ruang pelayanan publik
-    utterance.pitch = 1.05; // Nada hangat dan jernih (karakter wanita Indonesia)
+    utterance.rate = 0.72; // Tempo lambat yang sangat tenang, jernih, dan tidak terburu-buru
+    utterance.pitch = 1.0;  // Pitch natural 1.0 untuk kebersihan total tanpa distorsi suara
     utterance.volume = 1.0;
 
     // Filter khusus suara berbahasa Indonesia resmi (id-ID)
@@ -560,7 +560,7 @@ class QueueEngine {
     });
 
     if (indonesianVoices.length > 0) {
-      // Prioritaskan suara perempuan Bahasa Indonesia resmi (misal: Google Bahasa Indonesia, Microsoft Aris, Damayanti, Indah)
+      // Prioritaskan suara perempuan Bahasa Indonesia resmi (Google Bahasa Indonesia, Microsoft Aris, Damayanti, Indah, Wulan, Gadis)
       const femaleIndonesianVoice = indonesianVoices.find(v => {
         const name = v.name.toLowerCase();
         return name.includes('google') || name.includes('aris') || name.includes('indah') || 
