@@ -559,9 +559,10 @@ class QueueEngine {
     }
 
     // Urutan pemanggilan audio berantai dengan jeda presisi 0.5 detik (Sustain 0.5s per digit)
+    // Menggunakan code.toLowerCase() agar diucapkan murni "a" saja tanpa ucapan "huruf besar"
     const sequence = [
       { text: 'Nomor antrian', delayAfter: 350 },
-      { text: code, delayAfter: 500 } // Jeda 0.5 detik setelah huruf kode 'A'
+      { text: code.toLowerCase(), delayAfter: 500 } // Diucapkan murni "a" tanpa sebutan "huruf besar"
     ];
 
     // Jeda 0.5 detik antar pengucapan digit
