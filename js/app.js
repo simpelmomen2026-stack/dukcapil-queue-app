@@ -535,23 +535,12 @@ class QueueEngine {
       '5': 'lima', '6': 'enam', '7': 'tujuh', '8': 'delapan', '9': 'sembilan'
     };
 
-    const parts = ticketNumber.split('-');
-    const code = parts[0];
-    const digitsRaw = parts[1] || '001';
-    
-    // Pengucapan angka tanpa koma antar-digit agar mengalir mulus, tenang, dan bebas gemetar
-    const digitsSpoken = digitsRaw.split('').map(d => digitMap[d] || d).join(' ');
+    const ticketParts = ticketNumber.split('-');
+    const code = ticketParts[0];
+    const digitsRaw = ticketParts[1] || '001';
+    const digitWords = digitsRaw.split('').map(d => digitMap[d] || d);
 
-    // Kalimat pengumuman resmi yang tenang, tenang, dan berwibawa
-    const speechText = `Nomor antrian ${code} ${digitsSpoken}, silakan menuju ke Loket ${loketNumber}.`;
-
-    const utterance = new SpeechSynthesisUtterance(speechText);
-    utterance.lang = 'id-ID';
-    utterance.rate = 0.65; // Tempo ekstra lambat yang sangat tenang, santun, dan sangat mudah disimak
-    utterance.pitch = 1.0;  // Pitch natural 1.0 untuk kebersihan total tanpa distorsi suara
-    utterance.volume = 1.0;
-
-    // Filter khusus suara berbahasa Indonesia resmi (id-ID)
+    // Cari profil suara perempuan Bahasa Indonesia lembut & hangat
     const voices = window.speechSynthesis.getVoices();
     const indonesianVoices = voices.filter(v => {
       if (!v.lang) return false;
@@ -559,21 +548,56 @@ class QueueEngine {
       return l.startsWith('id') || l.includes('id-') || l.includes('id_') || l.includes('ind');
     });
 
+    let selectedVoice = null;
     if (indonesianVoices.length > 0) {
-      // Prioritaskan suara perempuan Bahasa Indonesia resmi (Google Bahasa Indonesia, Microsoft Aris, Damayanti, Indah, Wulan, Gadis)
-      const femaleIndonesianVoice = indonesianVoices.find(v => {
+      selectedVoice = indonesianVoices.find(v => {
         const name = v.name.toLowerCase();
         return name.includes('google') || name.includes('aris') || name.includes('indah') || 
                name.includes('gadis') || name.includes('damayanti') || name.includes('wulan') || 
                name.includes('female') || name.includes('woman') || name.includes('natural');
-      });
-
-      utterance.voice = femaleIndonesianVoice || indonesianVoices[0];
+      }) || indonesianVoices[0];
     }
 
-    setTimeout(() => {
+    // Urutan pemanggilan audio berantai dengan jeda presisi 0.5 detik (Sustain 0.5s per digit)
+    const sequence = [
+      { text: 'Nomor antrian', delayAfter: 350 },
+      { text: code, delayAfter: 500 } // Jeda 0.5 detik setelah huruf kode 'A'
+    ];
+
+    // Jeda 0.5 detik antar pengucapan digit
+    digitWords.forEach((word) => {
+      sequence.push({ text: word, delayAfter: 500 });
+    });
+
+    sequence.push({ text: `silakan menuju ke Loket ${loketNumber}`, delayAfter: 200 });
+
+    let index = 0;
+    const speakNext = () => {
+      if (index >= sequence.length) return;
+
+      const item = sequence[index];
+      index++;
+
+      const utterance = new SpeechSynthesisUtterance(item.text);
+      utterance.lang = 'id-ID';
+      utterance.rate = 0.58; // Tempo ekstra lambat, lembut, dan sensual/anggun
+      utterance.pitch = 0.95; // Nada hangat, empuk, dan merdu
+      utterance.volume = 1.0;
+      if (selectedVoice) utterance.voice = selectedVoice;
+
+      utterance.onend = () => {
+        setTimeout(speakNext, item.delayAfter || 500);
+      };
+
+      utterance.onerror = (e) => {
+        console.warn('Utterance error:', e);
+        setTimeout(speakNext, 200);
+      };
+
       window.speechSynthesis.speak(utterance);
-    }, 200);
+    };
+
+    setTimeout(speakNext, 150);
   }
 }
 
