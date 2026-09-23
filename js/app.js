@@ -539,28 +539,30 @@ class QueueEngine {
     const code = parts[0];
     const digitsRaw = parts[1] || '001';
     
-    // Jeda alami koma antar angka agar suara bersih, jernih, dan tidak gemetar
+    // Jeda alami antar angka untuk intonasi merdu dan artikulasi jelas
     const digitsSpoken = digitsRaw.split('').map(d => digitMap[d] || d).join(', ');
 
-    // Pengucapan santun, bersih, dan natural khas pengumuman resmi
-    const speechText = `Nomor antrian ${code}, ${digitsSpoken}, silakan menuju ke Loket ${loketNumber}.`;
+    // Kalimat pengumuman resmi yang ramah dan merdu
+    const speechText = `Nomor antrian, ${code}, ${digitsSpoken}. Silakan menuju ke, Loket ${loketNumber}.`;
 
     const utterance = new SpeechSynthesisUtterance(speechText);
     utterance.lang = 'id-ID';
-    utterance.rate = 0.85; // Tempo sedang yang sangat jelas dan bersih
-    utterance.pitch = 1.0;  // Pitch natural 1.0 untuk menghilangkan efek gemetar/distorsi digital
+    utterance.rate = 0.88; // Ritme sedang yang santun, merdu, dan pas untuk ruang pelayanan
+    utterance.pitch = 1.05; // Tone hangat dan lembut (karakter wanita Indonesia)
     utterance.volume = 1.0;
 
-    // Prioritas pencarian suara perempuan/wanita Bahasa Indonesia
+    // Prioritas utama pencarian karakter suara perempuan/wanita Bahasa Indonesia
     const voices = window.speechSynthesis.getVoices();
     const indonesianVoices = voices.filter(v => v.lang && (v.lang.includes('id') || v.lang.includes('ID') || v.lang.includes('ind')));
 
     if (indonesianVoices.length > 0) {
+      // Prioritaskan nama voice wanita/natural merdu
       const femaleVoice = indonesianVoices.find(v => {
         const name = v.name.toLowerCase();
         return name.includes('gadis') || name.includes('indah') || name.includes('damayanti') || 
-               name.includes('female') || name.includes('woman') || name.includes('natural') || 
-               name.includes('google') || name.includes('aris');
+               name.includes('wulan') || name.includes('intan') || name.includes('putri') ||
+               name.includes('female') || name.includes('woman') || name.includes('google') || 
+               name.includes('aris') || name.includes('natural');
       });
 
       utterance.voice = femaleVoice || indonesianVoices[0];
