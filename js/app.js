@@ -547,7 +547,7 @@ class QueueEngine {
 
     const utterance = new SpeechSynthesisUtterance(speechText);
     utterance.lang = 'id-ID';
-    utterance.rate = 0.72; // Tempo lambat yang sangat tenang, jernih, dan tidak terburu-buru
+    utterance.rate = 0.65; // Tempo ekstra lambat yang sangat tenang, santun, dan sangat mudah disimak
     utterance.pitch = 1.0;  // Pitch natural 1.0 untuk kebersihan total tanpa distorsi suara
     utterance.volume = 1.0;
 
