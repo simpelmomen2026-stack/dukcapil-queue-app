@@ -95,8 +95,8 @@ class AuthEngine {
   // Attempt reading remote Google Sheet 'petugas' tab dynamically
   async loadPetugasFromSheet() {
     try {
-      const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=csv`;
-      const response = await fetch(url);
+      const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=csv&_nocache=${Date.now()}`;
+      const response = await fetch(url, { cache: 'no-store' });
       if (response.ok) {
         const text = await response.text();
         const lines = text.split('\n');
@@ -190,17 +190,17 @@ class QueueEngine {
       };
     }
 
-    // Auto-sync antrian dari Google Sheet setiap 6 detik untuk perangkat beda jaringan/Windows
+    // Auto-sync antrian dari Google Sheet setiap 4 detik untuk perangkat beda jaringan/Windows/Android
     this.syncRemoteQueueFromSheet();
     setInterval(() => {
       this.syncRemoteQueueFromSheet();
-    }, 6000);
+    }, 4000);
   }
 
   async syncRemoteQueueFromSheet() {
     try {
-      const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=antrian`;
-      const response = await fetch(url);
+      const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=antrian&_nocache=${Date.now()}`;
+      const response = await fetch(url, { cache: 'no-store' });
       if (response.ok) {
         const text = await response.text();
         const lines = text.split('\n');
@@ -228,8 +228,26 @@ class QueueEngine {
         }
 
         if (remoteTickets.length > 0) {
-          // Update tiket tanpa menghapus status lokal jika belum ada di lokal
           this.state.tickets = remoteTickets;
+          
+          // Synchronize active loket states from remote sheet
+          remoteTickets.forEach(t => {
+            if (t.calledByLoket && (t.status === 'SERVING' || t.status === 'CALLED')) {
+              const loketId = t.calledByLoket;
+              if (this.state.lokets[loketId]) {
+                this.state.lokets[loketId].activeTicket = t;
+                this.state.lokets[loketId].status = 'BUSY';
+              }
+            }
+          });
+
+          // Update last called ticket for TV display
+          const activeCalled = remoteTickets.filter(t => t.calledByLoket && (t.status === 'SERVING' || t.status === 'CALLED'));
+          if (activeCalled.length > 0) {
+            const latest = activeCalled[activeCalled.length - 1];
+            this.state.lastCalledTicket = { ticket: latest, loketId: latest.calledByLoket };
+          }
+
           this.saveState();
           this.notifyUI('REMOTE_SHEET_SYNC');
         }
