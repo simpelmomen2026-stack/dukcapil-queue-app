@@ -693,18 +693,18 @@ class QueueEngine {
       }) || indonesianVoices[0];
     }
 
-    // Urutan pemanggilan audio berantai dengan jeda presisi 0.5 detik
+    // Urutan pemanggilan audio berantai dengan tempo cepat & jeda pendek (220-250ms)
     const sequence = [
-      { text: 'Nomor antrian', delayAfter: 350 },
-      { text: code.toLowerCase(), delayAfter: 500 } // Diucapkan murni "a" tanpa sebutan "huruf besar"
+      { text: 'Nomor antrian', delayAfter: 200 },
+      { text: code.toLowerCase(), delayAfter: 250 } // Diucapkan murni "a" tanpa sebutan "huruf besar"
     ];
 
-    // Jeda 0.5 detik antar elemen sebutan nomor (misal "nol" -> 0.5s -> "sepuluh")
+    // Jeda singkat antar elemen nomor (250ms) agar pengucapan cepat dan mengalir lancar
     numberWords.forEach((word) => {
-      sequence.push({ text: word, delayAfter: 500 });
+      sequence.push({ text: word, delayAfter: 250 });
     });
 
-    sequence.push({ text: `silakan menuju ke Loket ${loketNumber}`, delayAfter: 200 });
+    sequence.push({ text: `silakan menuju ke Loket ${loketNumber}`, delayAfter: 150 });
 
     let index = 0;
     const speakNext = () => {
@@ -715,24 +715,24 @@ class QueueEngine {
 
       const utterance = new SpeechSynthesisUtterance(item.text);
       utterance.lang = 'id-ID';
-      utterance.rate = 0.82; // Tempo sedang yang sopan, jernih, dan pas untuk pengumuman ruang tunggu
-      utterance.pitch = 0.98; // Nada hangat, empuk, dan merdu
+      utterance.rate = 1.0; // Tempo cepat, tegas, dan lancar
+      utterance.pitch = 0.98; // Nada jernih dan merdu
       utterance.volume = 1.0;
       if (selectedVoice) utterance.voice = selectedVoice;
 
       utterance.onend = () => {
-        setTimeout(speakNext, item.delayAfter || 500);
+        setTimeout(speakNext, item.delayAfter || 250);
       };
 
       utterance.onerror = (e) => {
         console.warn('Utterance error:', e);
-        setTimeout(speakNext, 200);
+        setTimeout(speakNext, 100);
       };
 
       window.speechSynthesis.speak(utterance);
     };
 
-    setTimeout(speakNext, 150);
+    setTimeout(speakNext, 100);
   }
 }
 
