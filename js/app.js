@@ -622,8 +622,8 @@ class QueueEngine {
 
       const utterance = new SpeechSynthesisUtterance(item.text);
       utterance.lang = 'id-ID';
-      utterance.rate = 0.58; // Tempo ekstra lambat, lembut, dan sensual/anggun
-      utterance.pitch = 0.95; // Nada hangat, empuk, dan merdu
+      utterance.rate = 0.82; // Tempo sedang yang sopan, jernih, dan pas untuk pengumuman ruang tunggu
+      utterance.pitch = 0.98; // Nada hangat, empuk, dan merdu
       utterance.volume = 1.0;
       if (selectedVoice) utterance.voice = selectedVoice;
 
