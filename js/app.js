@@ -189,6 +189,54 @@ class QueueEngine {
         window.speechSynthesis.getVoices();
       };
     }
+
+    // Auto-sync antrian dari Google Sheet setiap 6 detik untuk perangkat beda jaringan/Windows
+    this.syncRemoteQueueFromSheet();
+    setInterval(() => {
+      this.syncRemoteQueueFromSheet();
+    }, 6000);
+  }
+
+  async syncRemoteQueueFromSheet() {
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=antrian`;
+      const response = await fetch(url);
+      if (response.ok) {
+        const text = await response.text();
+        const lines = text.split('\n');
+        const remoteTickets = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+          if (cols.length >= 5 && cols[0] && cols[1]) {
+            const catCode = cols[2] || cols[1].charAt(0).toUpperCase();
+            let catName = 'Pengurusan Dokumen Kependudukan';
+            if (catCode === 'B') catName = 'Pengambilan Dokumen';
+            if (catCode === 'C') catName = 'Pengambilan KTP / KIA';
+
+            remoteTickets.push({
+              id: cols[0],
+              number: cols[1],
+              categoryCode: catCode,
+              categoryName: catName,
+              token: cols[3] || '-',
+              status: cols[4] || 'WAITING',
+              timestamp: cols[5] || new Date().toISOString(),
+              calledByLoket: cols[6] ? parseInt(cols[6].replace(/\D/g, '')) : null
+            });
+          }
+        }
+
+        if (remoteTickets.length > 0) {
+          // Update tiket tanpa menghapus status lokal jika belum ada di lokal
+          this.state.tickets = remoteTickets;
+          this.saveState();
+          this.notifyUI('REMOTE_SHEET_SYNC');
+        }
+      }
+    } catch (e) {
+      console.warn('Sync remote queue from Google Sheet warning:', e);
+    }
   }
 
   loadState() {
