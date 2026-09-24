@@ -257,6 +257,26 @@ class QueueEngine {
     }
   }
 
+  checkAndResetDaily(parsedState) {
+    const todayStr = new Date().toDateString();
+    const targetState = parsedState || this.state;
+    if (!targetState) return;
+    
+    if (!targetState.lastDate || targetState.lastDate !== todayStr) {
+      console.log('🌅 Hari baru terdeteksi! Mengatur ulang urutan nomor antrian ke 001.');
+      targetState.counters = { A: 0, B: 0, C: 0 };
+      targetState.tickets = [];
+      targetState.lastCalledTicket = null;
+      for (let i = 1; i <= 8; i++) {
+        if (targetState.lokets && targetState.lokets[i]) {
+          targetState.lokets[i].activeTicket = null;
+          targetState.lokets[i].status = 'READY';
+        }
+      }
+      targetState.lastDate = todayStr;
+    }
+  }
+
   loadState() {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
@@ -274,13 +294,19 @@ class QueueEngine {
         }
         parsed.settings.subTitle = 'KABUPATEN KEPULAUAN SANGIHE';
         parsed.settings.logoUrl = 'images/logo-sangihe.png';
+        
+        // Auto Reset ke 001 Setiap Hari Baru
+        this.checkAndResetDaily(parsed);
+        
         return parsed;
       }
     } catch (e) {
       console.error('Failed to load queue state:', e);
     }
-    this.saveState(defaultState);
-    return JSON.parse(JSON.stringify(defaultState));
+    const fresh = JSON.parse(JSON.stringify(defaultState));
+    fresh.lastDate = new Date().toDateString();
+    this.saveState(fresh);
+    return fresh;
   }
 
   saveState(stateToSave) {
@@ -316,6 +342,7 @@ class QueueEngine {
 
   // --- ACTIONS ---
   generateTicket(catCode, token = '') {
+    this.checkAndResetDaily();
     const code = catCode.toUpperCase();
     this.state.counters[code] = (this.state.counters[code] || 0) + 1;
     const numSeq = this.state.counters[code];
