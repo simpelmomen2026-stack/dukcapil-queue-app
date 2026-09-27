@@ -278,7 +278,7 @@
             loginCard.style.display = 'none';
             accessDeniedCard.style.display = 'none';
             adminDashboardContent.style.display = 'block';
-            renderAdmin(engine.state);
+            renderAdminInitial(engine.state);
           } else {
             loginCard.style.display = 'none';
             adminDashboardContent.style.display = 'none';
@@ -381,20 +381,38 @@
         });
       }
 
-      function renderAdmin(state) {
-        document.getElementById('headerTitle').textContent = state.settings.instansiName;
-        document.getElementById('headerSubTitle').textContent = state.settings.subTitle || 'KABUPATEN KEPULAUAN SANGIHE';
+      function renderSettingsForm(settings) {
+        if (!settings) return;
+        if (inputInstansi) inputInstansi.value = settings.instansiName || '';
+        if (inputSubTitle) inputSubTitle.value = settings.subTitle || 'KABUPATEN KEPULAUAN SANGIHE';
+        if (inputRunningText) inputRunningText.value = settings.runningText || '';
+        if (checkVoiceEnabled) checkVoiceEnabled.checked = !!settings.voiceEnabled;
+      }
 
-        inputInstansi.value = state.settings.instansiName;
-        inputSubTitle.value = state.settings.subTitle || 'KABUPATEN KEPULAUAN SANGIHE';
-        inputRunningText.value = state.settings.runningText;
-        checkVoiceEnabled.checked = state.settings.voiceEnabled;
+      function renderAdminStats(state) {
+        if (!state) return;
+        if (state.settings) {
+          const hTitle = document.getElementById('headerTitle');
+          const hSubTitle = document.getElementById('headerSubTitle');
+          if (hTitle) hTitle.textContent = state.settings.instansiName;
+          if (hSubTitle) hSubTitle.textContent = state.settings.subTitle || 'KABUPATEN KEPULAUAN SANGIHE';
+        }
+        if (state.tickets) {
+          const elTotal = document.getElementById('statTotalTickets');
+          const elFinished = document.getElementById('statFinished');
+          const elWaiting = document.getElementById('statWaiting');
+          const elSkipped = document.getElementById('statSkipped');
 
-        document.getElementById('statTotalTickets').textContent = state.tickets.length;
-        document.getElementById('statFinished').textContent = state.tickets.filter(t => t.status === 'FINISHED').length;
-        document.getElementById('statWaiting').textContent = state.tickets.filter(t => t.status === 'WAITING').length;
-        document.getElementById('statSkipped').textContent = state.tickets.filter(t => t.status === 'SKIPPED').length;
+          if (elTotal) elTotal.textContent = state.tickets.length;
+          if (elFinished) elFinished.textContent = state.tickets.filter(t => t.status === 'FINISHED').length;
+          if (elWaiting) elWaiting.textContent = state.tickets.filter(t => t.status === 'WAITING').length;
+          if (elSkipped) elSkipped.textContent = state.tickets.filter(t => t.status === 'SKIPPED').length;
+        }
+      }
 
+      function renderAdminInitial(state) {
+        renderAdminStats(state);
+        renderSettingsForm(state.settings);
         renderOperatingHoursTable(state.operatingHours);
       }
 
@@ -425,7 +443,7 @@
           });
 
           engine.updateOperatingHours(updatedSchedule);
-          alert('✅ Jadwal Jam Pelayanan (Senin - Sabtu) berhasil disimpan!');
+          alert('✅ Jadwal Jam Pelayanan (Senin - Minggu) berhasil disimpan!');
         });
       }
 
@@ -444,7 +462,12 @@
       engine.subscribe((type, payload, state) => {
         const u = auth.getCurrentUser();
         if (u && u.role.toLowerCase().includes('admin')) {
-          renderAdmin(state);
+          renderAdminStats(state);
+          if (type === 'SETTINGS_UPDATED') {
+            renderSettingsForm(state.settings);
+          } else if (type === 'OPERATING_HOURS_UPDATED') {
+            renderOperatingHoursTable(state.operatingHours);
+          }
         }
       });
     });
