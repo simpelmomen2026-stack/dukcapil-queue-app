@@ -207,7 +207,7 @@
         <div>
           <h3 style="color: var(--accent-gold); margin-bottom: 0.25rem;">🕒 JADWAL JAM OPERASIONAL PELAYANAN ANTRIAN</h3>
           <p style="color: var(--text-muted); font-size: 0.9rem;">
-            Atur jam buka dan jam tutup loket pelayanan antrian urut dari hari <strong>Senin, Selasa, Rabu, Kamis, Jumat, hingga Sabtu</strong>.
+            Atur jam buka dan jam tutup loket pelayanan antrian urut dari hari <strong>Senin s.d. Minggu</strong>.
           </p>
         </div>
       </div>
@@ -324,7 +324,7 @@
 
       const operatingHoursForm = document.getElementById('operatingHoursForm');
       const operatingHoursTableBody = document.getElementById('operatingHoursTableBody');
-      const dayList = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const dayList = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
       function renderOperatingHoursTable(hoursData) {
         if (!operatingHoursTableBody) return;
