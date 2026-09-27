@@ -64,7 +64,8 @@ const defaultState = {
     { day: 'Rabu', isOpen: true, openTime: '08:00', closeTime: '15:00' },
     { day: 'Kamis', isOpen: true, openTime: '08:00', closeTime: '15:00' },
     { day: 'Jumat', isOpen: true, openTime: '08:00', closeTime: '11:30' },
-    { day: 'Sabtu', isOpen: true, openTime: '08:00', closeTime: '12:00' }
+    { day: 'Sabtu', isOpen: true, openTime: '08:00', closeTime: '12:00' },
+    { day: 'Minggu', isOpen: false, openTime: '08:00', closeTime: '12:00' }
   ],
   categories: [
     { code: 'A', name: 'Pengurusan Dokumen Kependudukan', desc: 'Permohonan baru, perubahan data, dan pengurusan seluruh berkas kependudukan', color: '#3b82f6' },
@@ -286,6 +287,19 @@ class QueueEngine {
         parsed.categories = defaultState.categories;
         if (!parsed.operatingHours || !Array.isArray(parsed.operatingHours) || parsed.operatingHours.length === 0) {
           parsed.operatingHours = defaultState.operatingHours;
+        } else {
+          const allDays = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+          allDays.forEach(dayName => {
+            const exists = parsed.operatingHours.find(h => h.day === dayName);
+            if (!exists) {
+              parsed.operatingHours.push({
+                day: dayName,
+                isOpen: false,
+                openTime: '08:00',
+                closeTime: '12:00'
+              });
+            }
+          });
         }
         for (let i = 1; i <= 8; i++) {
           if (!parsed.lokets[i]) {
