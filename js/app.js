@@ -15,8 +15,14 @@ const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwaPsDHS
 async function syncTicketToGoogleSheet(action, data) {
   if (!GOOGLE_APPS_SCRIPT_URL) return;
   try {
+    const ticketObj = (data && data.ticket) ? data.ticket : {};
     const payload = {
       action: action,
+      token: ticketObj.token || data.token || '',
+      number: ticketObj.number || data.number || '',
+      ticketId: ticketObj.id || data.ticketId || '',
+      status: ticketObj.status || data.status || 'WAITING',
+      loketId: data.loketId || '',
       ...data,
       timestamp: new Date().toISOString()
     };
@@ -24,11 +30,11 @@ async function syncTicketToGoogleSheet(action, data) {
       method: 'POST',
       mode: 'no-cors',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'text/plain;charset=utf-8'
       },
       body: JSON.stringify(payload)
     });
-    console.log(`📡 [GAS Sync Sent] Action: ${action}`, data);
+    console.log(`📡 [GAS Sync Sent] Action: ${action}`, payload);
   } catch (err) {
     console.warn('⚠️ Google Apps Script sync warning:', err);
   }
