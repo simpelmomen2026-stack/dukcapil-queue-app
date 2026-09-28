@@ -41,6 +41,7 @@ async function syncTicketToGoogleSheet(action, data) {
 }
 
 
+
 // Exact Petugas Accounts from Google Sheet (https://docs.google.com/spreadsheets/d/169cLHhc22o4az0BfJY_OLRmMZDVOtaJ0eaD2y1chQfU)
 const defaultPetugasList = [
   { username: 'admin', password: '123456', name: 'Davidson Djarang', role: 'admin', loket: 'ALL' },
