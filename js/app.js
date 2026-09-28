@@ -445,6 +445,7 @@ class QueueEngine {
     syncTicketToGoogleSheet('UPDATE_STATUS', { 
       ticketId: loket.activeTicket.id, 
       number: loket.activeTicket.number, 
+      token: loket.activeTicket.token, 
       status: 'SERVING', 
       loketId: loketId,
       isRecall: true 
