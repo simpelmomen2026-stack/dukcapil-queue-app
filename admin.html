@@ -450,6 +450,7 @@
       btnResetQueue.addEventListener('click', () => {
         if (confirm('Apakah Anda yakin ingin RESET total antrian harian? Semua nomor tiket hari ini akan di-reset ke angka 1.')) {
           engine.resetQueue();
+          renderAdminStats(engine.state);
           alert('✅ Antrian harian berhasil di-reset!');
         }
       });

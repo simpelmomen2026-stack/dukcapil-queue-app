@@ -205,6 +205,54 @@ class QueueEngine {
     }, 4000);
   }
 
+  parseTimestampMs(str) {
+    if (!str) return 0;
+    if (typeof str === 'number') return str;
+    const num = Number(str);
+    if (!isNaN(num) && num > 1000000000000) return num;
+
+    let d = new Date(str);
+    if (!isNaN(d.getTime())) return d.getTime();
+
+    try {
+      const parts = String(str).trim().split(/[\sT]+/);
+      if (parts.length >= 1) {
+        const dateParts = parts[0].split(/[\/\-]/);
+        const timeParts = (parts[1] || '00:00:00').split(':');
+        if (dateParts.length === 3) {
+          let day, month, year;
+          if (dateParts[0].length === 4) {
+            year = parseInt(dateParts[0], 10);
+            month = parseInt(dateParts[1], 10) - 1;
+            day = parseInt(dateParts[2], 10);
+          } else if (dateParts[2].length === 4) {
+            const p1 = parseInt(dateParts[0], 10);
+            const p2 = parseInt(dateParts[1], 10);
+            year = parseInt(dateParts[2], 10);
+            if (p1 > 12) {
+              day = p1;
+              month = p2 - 1;
+            } else if (p2 > 12) {
+              month = p1 - 1;
+              day = p2;
+            } else {
+              day = p1;
+              month = p2 - 1;
+            }
+          }
+          const hour = parseInt(timeParts[0] || 0, 10);
+          const min = parseInt(timeParts[1] || 0, 10);
+          const sec = parseInt(timeParts[2] || 0, 10);
+          d = new Date(year, month, day, hour, min, sec);
+          if (!isNaN(d.getTime())) return d.getTime();
+        }
+      }
+    } catch (e) {
+      console.warn('Error parsing timestamp string:', str, e);
+    }
+    return 0;
+  }
+
   async syncRemoteQueueFromSheet() {
     try {
       const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=antrian&_nocache=${Date.now()}`;
@@ -212,50 +260,126 @@ class QueueEngine {
       if (response.ok) {
         const text = await response.text();
         const lines = text.split('\n');
-        const remoteTickets = [];
+        const remoteTicketsMap = new Map();
+        
+        const resetTime = this.state.lastResetTimestamp || 0;
         
         for (let i = 1; i < lines.length; i++) {
           const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
           if (cols.length >= 5 && cols[0] && cols[1]) {
-            const catCode = cols[2] || cols[1].charAt(0).toUpperCase();
+            const ticketId = cols[0];
+            const ticketNumber = cols[1];
+            const catCode = cols[2] || ticketNumber.charAt(0).toUpperCase();
             let catName = 'Pengurusan Dokumen Kependudukan';
             if (catCode === 'B') catName = 'Pengambilan Dokumen';
             if (catCode === 'C') catName = 'Pengambilan KTP / KIA';
 
-            remoteTickets.push({
-              id: cols[0],
-              number: cols[1],
+            const rawStatus = (cols[4] || 'WAITING').toUpperCase();
+            const calledLoketRaw = cols[6] ? parseInt(cols[6].replace(/\D/g, '')) : null;
+            const timestampStr = cols[5] || new Date().toISOString();
+            const ticketTime = this.parseTimestampMs(timestampStr);
+
+            // Filter out tickets created before the last manual reset time!
+            if (resetTime && ticketTime && ticketTime < (resetTime - 5000)) {
+              continue;
+            }
+
+            remoteTicketsMap.set(ticketId, {
+              id: ticketId,
+              number: ticketNumber,
               categoryCode: catCode,
               categoryName: catName,
               token: cols[3] || '-',
-              status: cols[4] || 'WAITING',
-              timestamp: cols[5] || new Date().toISOString(),
-              calledByLoket: cols[6] ? parseInt(cols[6].replace(/\D/g, '')) : null
+              status: rawStatus,
+              timestamp: timestampStr,
+              calledByLoket: calledLoketRaw
             });
           }
         }
 
-        if (remoteTickets.length > 0) {
-          this.state.tickets = remoteTickets;
-          
-          // Synchronize active loket states from remote sheet
-          remoteTickets.forEach(t => {
-            if (t.calledByLoket && (t.status === 'SERVING' || t.status === 'CALLED')) {
-              const loketId = t.calledByLoket;
-              if (this.state.lokets[loketId]) {
-                this.state.lokets[loketId].activeTicket = t;
-                this.state.lokets[loketId].status = 'BUSY';
+        // Purge local tickets created before resetTime if reset occurred
+        if (resetTime > 0 && this.state.tickets.length > 0) {
+          this.state.tickets = this.state.tickets.filter(t => {
+            const tTime = this.parseTimestampMs(t.timestamp);
+            return !tTime || tTime >= (resetTime - 5000);
+          });
+        }
+
+        if (remoteTicketsMap.size > 0 || (this.state.tickets.length > 0 && resetTime === 0)) {
+          // Merge local tickets and remote tickets intelligently
+          const mergedTickets = [];
+          const processedIds = new Set();
+
+          // 1. First process all local tickets to preserve SERVING / FINISHED state
+          this.state.tickets.forEach(localT => {
+            processedIds.add(localT.id);
+            const remoteT = remoteTicketsMap.get(localT.id);
+
+            if (remoteT) {
+              let finalStatus = localT.status;
+              let finalLoket = localT.calledByLoket;
+
+              if (remoteT.status === 'FINISHED' || remoteT.status === 'SKIPPED') {
+                finalStatus = remoteT.status;
+                finalLoket = remoteT.calledByLoket || localT.calledByLoket;
+              } else if (remoteT.status === 'SERVING' && localT.status === 'WAITING') {
+                finalStatus = 'SERVING';
+                finalLoket = remoteT.calledByLoket;
               }
+
+              mergedTickets.push({
+                ...localT,
+                status: finalStatus,
+                calledByLoket: finalLoket,
+                token: (localT.token && localT.token !== '-') ? localT.token : remoteT.token
+              });
+            } else {
+              mergedTickets.push(localT);
             }
           });
 
+          // 2. Add remote tickets that are not yet in local state
+          remoteTicketsMap.forEach((remoteT, id) => {
+            if (!processedIds.has(id)) {
+              mergedTickets.push(remoteT);
+            }
+          });
+
+          this.state.tickets = mergedTickets;
+          
+          // Synchronize active loket states from tickets
+          for (let lId = 1; lId <= 8; lId++) {
+            const activeForLoket = mergedTickets.find(t => t.calledByLoket === lId && t.status === 'SERVING');
+            if (activeForLoket) {
+              this.state.lokets[lId].activeTicket = activeForLoket;
+              this.state.lokets[lId].status = 'BUSY';
+            } else if (this.state.lokets[lId].activeTicket && (this.state.lokets[lId].activeTicket.status === 'FINISHED' || this.state.lokets[lId].activeTicket.status === 'SKIPPED')) {
+              this.state.lokets[lId].activeTicket = null;
+              this.state.lokets[lId].status = 'READY';
+            }
+          }
+
           // Update last called ticket for TV display
-          const activeCalled = remoteTickets.filter(t => t.calledByLoket && (t.status === 'SERVING' || t.status === 'CALLED'));
+          const activeCalled = mergedTickets.filter(t => t.calledByLoket && t.status === 'SERVING');
           if (activeCalled.length > 0) {
             const latest = activeCalled[activeCalled.length - 1];
             this.state.lastCalledTicket = { ticket: latest, loketId: latest.calledByLoket };
+          } else {
+            this.state.lastCalledTicket = null;
           }
 
+          this.saveState();
+          this.notifyUI('REMOTE_SHEET_SYNC');
+        } else if (remoteTicketsMap.size === 0 && resetTime > 0) {
+          // Clean state sync when queue was reset and remote returns no new tickets
+          this.state.tickets = [];
+          this.state.lastCalledTicket = null;
+          for (let lId = 1; lId <= 8; lId++) {
+            if (this.state.lokets[lId]) {
+              this.state.lokets[lId].activeTicket = null;
+              this.state.lokets[lId].status = 'READY';
+            }
+          }
           this.saveState();
           this.notifyUI('REMOTE_SHEET_SYNC');
         }
@@ -550,12 +674,14 @@ class QueueEngine {
   }
 
   resetQueue() {
+    this.state.lastResetTimestamp = Date.now();
     this.state.counters = { A: 0, B: 0, C: 0 };
     this.state.tickets = [];
     this.state.lastCalledTicket = null;
     for (let i = 1; i <= 8; i++) {
       this.state.lokets[i] = { id: i, name: 'Loket ' + i, activeTicket: null, categoryFilter: 'ALL', status: 'READY' };
     }
+    this.saveState();
     this.broadcast('QUEUE_RESET');
     syncTicketToGoogleSheet('RESET_QUEUE', {});
   }

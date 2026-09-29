@@ -141,7 +141,7 @@
     </div>
   </footer>
 
-  <script src="js/app.js?v=2.0.1"></script>
+  <script src="js/app.js?v=2.0.2"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const engine = window.queueEngine;
@@ -234,6 +234,13 @@
 
       function handleCallEvent(type, payload, state) {
         renderDisplay(state);
+
+        if (type === 'QUEUE_RESET') {
+          activeCallBox.classList.remove('calling-animation');
+          if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+          }
+        }
 
         if (type === 'TICKET_CALLED' || type === 'TICKET_RECALLED') {
           activeCallBox.classList.add('calling-animation');
