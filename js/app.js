@@ -756,13 +756,15 @@ class QueueEngine {
         console.warn('Audio chime failed:', e);
         resolve();
       }
-    });
-  }
-
-  async speakTicketCall(ticketNumber, loketNumber) {
+   async speakTicketCall(ticketNumber, loketNumber) {
     if (!this.state.settings.voiceEnabled) return;
+
+    const callId = Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+    this.currentCallId = callId;
     
     await this.playAirportChime();
+
+    if (this.currentCallId !== callId) return;
 
     if (!('speechSynthesis' in window)) {
       console.warn('SpeechSynthesis API tidak didukung pada browser ini.');
@@ -802,19 +804,16 @@ class QueueEngine {
         '5': 'lima', '6': 'enam', '7': 'tujuh', '8': 'delapan', '9': 'sembilan'
       };
 
-      // 001 s.d. 009 -> ["nol", "nol", "satu"] s.d. ["nol", "nol", "sembilan"]
       if (digitsRaw.startsWith('00')) {
         const lastChar = digitsRaw.charAt(2);
         return ['nol', 'nol', singleDigitMap[lastChar] || 'satu'];
       }
 
-      // 010 s.d. 099 -> ["nol", "sepuluh"], ["nol", "sebelas"], ["nol", "dua puluh"], dst.
       if (digitsRaw.startsWith('0')) {
         const lastTwoVal = parseInt(digitsRaw.substring(1), 10);
         return ['nol', convertTwoDigitsToIndonesian(lastTwoVal)];
       }
 
-      // 100 ke atas (100, 101, dst.) -> ["seratus"], ["seratus satu"], dst.
       return [convertThreeDigitsToIndonesian(val)];
     }
 
@@ -823,7 +822,6 @@ class QueueEngine {
     const digitsRaw = ticketParts[1] || '001';
     const numberWords = getIndonesianNumberWords(digitsRaw);
 
-    // Cari profil suara perempuan Bahasa Indonesia lembut & hangat
     const voices = window.speechSynthesis.getVoices();
     const indonesianVoices = voices.filter(v => {
       if (!v.lang) return false;
@@ -841,13 +839,11 @@ class QueueEngine {
       }) || indonesianVoices[0];
     }
 
-    // Urutan pemanggilan audio berantai dengan tempo cepat & jeda pendek (220-250ms)
     const sequence = [
       { text: 'Nomor antrian', delayAfter: 200 },
-      { text: code.toLowerCase(), delayAfter: 250 } // Diucapkan murni "a" tanpa sebutan "huruf besar"
+      { text: code.toLowerCase(), delayAfter: 250 }
     ];
 
-    // Jeda singkat antar elemen nomor (250ms) agar pengucapan cepat dan mengalir lancar
     numberWords.forEach((word) => {
       sequence.push({ text: word, delayAfter: 250 });
     });
@@ -856,6 +852,7 @@ class QueueEngine {
 
     let index = 0;
     const speakNext = () => {
+      if (this.currentCallId !== callId) return;
       if (index >= sequence.length) return;
 
       const item = sequence[index];
@@ -863,16 +860,18 @@ class QueueEngine {
 
       const utterance = new SpeechSynthesisUtterance(item.text);
       utterance.lang = 'id-ID';
-      utterance.rate = 1.0; // Tempo cepat, tegas, dan lancar
-      utterance.pitch = 0.98; // Nada jernih dan merdu
+      utterance.rate = 1.0;
+      utterance.pitch = 0.98;
       utterance.volume = 1.0;
       if (selectedVoice) utterance.voice = selectedVoice;
 
       utterance.onend = () => {
+        if (this.currentCallId !== callId) return;
         setTimeout(speakNext, item.delayAfter || 250);
       };
 
       utterance.onerror = (e) => {
+        if (this.currentCallId !== callId) return;
         console.warn('Utterance error:', e);
         setTimeout(speakNext, 100);
       };

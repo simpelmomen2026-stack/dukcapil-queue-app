@@ -410,20 +410,42 @@
         renderLoketPanel(engine.state);
       });
 
+      let isCallingDebounce = false;
+
       btnCallNext.addEventListener('click', () => {
+        if (isCallingDebounce) return;
+        isCallingDebounce = true;
+        btnCallNext.disabled = true;
+
         const nextTicket = engine.callNextTicket(currentLoketId, currentCategoryFilter);
         if (!nextTicket) {
           alert('Tidak ada antrian yang sedang menunggu!');
         }
+
+        setTimeout(() => {
+          isCallingDebounce = false;
+          btnCallNext.disabled = false;
+        }, 1000);
       });
 
       btnRecall.addEventListener('click', () => {
+        if (isCallingDebounce) return;
+        isCallingDebounce = true;
+        btnRecall.disabled = true;
+
         const activeLoket = engine.state.lokets[currentLoketId];
         if (!activeLoket || !activeLoket.activeTicket) {
           alert('Tidak ada antrian yang sedang aktif di loket ini!');
+          isCallingDebounce = false;
+          btnRecall.disabled = false;
           return;
         }
         engine.recallTicket(currentLoketId);
+
+        setTimeout(() => {
+          isCallingDebounce = false;
+          btnRecall.disabled = false;
+        }, 1000);
       });
 
       btnSkip.addEventListener('click', () => {
