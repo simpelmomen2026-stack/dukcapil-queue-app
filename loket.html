@@ -110,7 +110,11 @@
     </form>
 
     <div style="margin-top: 1.5rem; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-glass); padding-top: 1rem;">
-      Default Demo: operator_a (Loket 1) | operator_b (Loket 2) | operator_c (Loket 3) | admin (Loket All)
+      <strong>Akun Demo & Google Sheet</strong> (Password: <code>123456</code>):<br>
+      • <strong>admin</strong> (Akses Seluruh Loket 1 s.d. 8)<br>
+      • <strong>Fransin</strong> / <strong>operator_a</strong> (Loket 1) | <strong>Haryati</strong> (Loket 2) | <strong>Rina</strong> (Loket 3) | <strong>Sergio</strong> (Loket 4)<br>
+      • <strong>Seane</strong> / <strong>operator_b</strong> (Loket 5) | <strong>Jeklin</strong> (Loket 6)<br>
+      • <strong>Sosto</strong> / <strong>operator_c</strong> (Loket 7) | <strong>Yan</strong> (Loket 8)
     </div>
   </div>
 
@@ -215,7 +219,9 @@
 
   <script src="js/app.js?v=2.0.2"></script>
   <script>
+    if (window.initRealtimeClock) window.initRealtimeClock();
     document.addEventListener('DOMContentLoaded', () => {
+      if (window.initRealtimeClock) window.initRealtimeClock();
       const engine = window.queueEngine;
       const auth = window.authEngine;
 
@@ -264,7 +270,10 @@
           userNameLabel.textContent = user.name || user.username;
           userRoleLabel.textContent = user.role;
 
-          if (user.role !== 'Admin' && user.loket && user.loket !== 'ALL') {
+          const roleUpper = (user.role || '').toUpperCase();
+          const loketUpper = String(user.loket || '').toUpperCase();
+
+          if (!roleUpper.includes('ADMIN') && loketUpper !== 'ALL' && loketUpper !== 'SEMUA') {
             currentLoketId = parseInt(user.loket) || 1;
             isLoketLocked = true;
             userLoketBadge.textContent = `Loket ${currentLoketId}`;
@@ -272,21 +281,21 @@
             lockedLoketNum.textContent = currentLoketId;
           } else {
             isLoketLocked = false;
-            userLoketBadge.textContent = user.loket === 'ALL' ? 'Semua Loket' : `Loket ${currentLoketId}`;
+            userLoketBadge.textContent = 'Semua Loket (Admin)';
             loketLockNotice.style.display = 'none';
           }
 
-          if (user.role === 'Operator A') {
+          if (roleUpper === 'OPERATOR A' || roleUpper === 'OPERATOR_A') {
             currentCategoryFilter = 'A';
             selectCategoryFilter.value = 'A';
             selectCategoryFilter.disabled = true;
             filterLockNotice.style.display = 'block';
-          } else if (user.role === 'Operator B') {
+          } else if (roleUpper === 'OPERATOR B' || roleUpper === 'OPERATOR_B') {
             currentCategoryFilter = 'B';
             selectCategoryFilter.value = 'B';
             selectCategoryFilter.disabled = true;
             filterLockNotice.style.display = 'block';
-          } else if (user.role === 'Operator C') {
+          } else if (roleUpper === 'OPERATOR C' || roleUpper === 'OPERATOR_C') {
             currentCategoryFilter = 'C';
             selectCategoryFilter.value = 'C';
             selectCategoryFilter.disabled = true;

@@ -241,7 +241,9 @@
 
   <script src="js/app.js?v=2.0.2"></script>
   <script>
+    if (window.initRealtimeClock) window.initRealtimeClock();
     document.addEventListener('DOMContentLoaded', () => {
+      if (window.initRealtimeClock) window.initRealtimeClock();
       const engine = window.queueEngine;
       const auth = window.authEngine;
 

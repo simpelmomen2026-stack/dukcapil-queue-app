@@ -46,12 +46,15 @@ async function syncTicketToGoogleSheet(action, data) {
 const defaultPetugasList = [
   { username: 'admin', password: '123456', name: 'Davidson Djarang', role: 'admin', loket: 'ALL' },
   { username: 'Fransin', password: '123456', name: 'Fransin Makaminan', role: 'Operator A', loket: '1' },
+  { username: 'operator_a', password: '123456', name: 'Fransin Makaminan', role: 'Operator A', loket: '1' },
   { username: 'Haryati', password: '123456', name: 'Haryati Sambai', role: 'Operator A', loket: '2' },
   { username: 'Rina', password: '123456', name: 'Rina Taidi', role: 'Operator A', loket: '3' },
   { username: 'Sergio', password: '123456', name: 'Sergio Banua', role: 'Operator A', loket: '4' },
   { username: 'Seane', password: '123456', name: 'Seane Lawere', role: 'Operator B', loket: '5' },
+  { username: 'operator_b', password: '123456', name: 'Seane Lawere', role: 'Operator B', loket: '5' },
   { username: 'Jeklin', password: '123456', name: 'Jagulien Buisan', role: 'Operator B', loket: '6' },
   { username: 'Sosto', password: '123456', name: 'Fransosto Damasing', role: 'Operator C', loket: '7' },
+  { username: 'operator_c', password: '123456', name: 'Fransosto Damasing', role: 'Operator C', loket: '7' },
   { username: 'Yan', password: '123456', name: 'Yan Tinungki', role: 'Operator C', loket: '8' }
 ];
 
@@ -103,7 +106,7 @@ class AuthEngine {
   // Attempt reading remote Google Sheet 'petugas' tab dynamically
   async loadPetugasFromSheet() {
     try {
-      const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=csv&_nocache=${Date.now()}`;
+      const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=petugas&_nocache=${Date.now()}`;
       const response = await fetch(url, { cache: 'no-store' });
       if (response.ok) {
         const text = await response.text();
@@ -136,8 +139,17 @@ class AuthEngine {
   // Authenticate user by username & password (Case-insensitive username)
   async login(username, password) {
     await this.loadPetugasFromSheet();
+
+    // Ensure default admin user is always available as fallback
+    if (!this.petugasList.some(p => p.username.toLowerCase() === 'admin')) {
+      this.petugasList.push({ username: 'admin', password: '123456', name: 'Davidson Djarang', role: 'admin', loket: 'ALL' });
+    }
+
+    const cleanU = (username || '').trim().toLowerCase();
+    const cleanP = String(password || '').trim();
+
     const user = this.petugasList.find(
-      p => p.username.toLowerCase() === username.trim().toLowerCase() && String(p.password).trim() === String(password).trim()
+      p => String(p.username).trim().toLowerCase() === cleanU && String(p.password).trim() === cleanP
     );
 
     if (user) {
@@ -151,7 +163,7 @@ class AuthEngine {
       sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
       return { success: true, user: session };
     }
-    return { success: false, message: 'Username atau password salah! Periksa data di Sheet Petugas.' };
+    return { success: false, message: 'Username atau password salah! (Default: admin / 123456)' };
   }
 
   getCurrentUser() {
@@ -893,23 +905,27 @@ window.queueEngine = new QueueEngine();
 window.authEngine = new AuthEngine();
 
 function initRealtimeClock() {
-  const clockTimeEl = document.getElementById('clockTime');
-  const clockDateEl = document.getElementById('clockDate');
-  if (!clockTimeEl || !clockDateEl) return;
-
   function update() {
+    const clockTimeEl = document.getElementById('clockTime');
+    const clockDateEl = document.getElementById('clockDate');
     const now = new Date();
-    clockTimeEl.textContent = now.toLocaleTimeString('id-ID', { hour12: false });
-    clockDateEl.textContent = now.toLocaleDateString('id-ID', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
+    if (clockTimeEl) {
+      clockTimeEl.textContent = now.toLocaleTimeString('id-ID', { hour12: false });
+    }
+    if (clockDateEl) {
+      clockDateEl.textContent = now.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    }
   }
 
   update();
-  setInterval(update, 1000);
+  if (!window._realtimeClockInterval) {
+    window._realtimeClockInterval = setInterval(update, 1000);
+  }
 }
 
 window.initRealtimeClock = initRealtimeClock;
