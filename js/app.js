@@ -699,7 +699,9 @@ class QueueEngine {
       this.isAudioUnlocked = true;
 
       if ('speechSynthesis' in window) {
-        const dummyUtterance = new SpeechSynthesisUtterance('');
+        window.speechSynthesis.cancel();
+        const dummyUtterance = new SpeechSynthesisUtterance(' ');
+        dummyUtterance.volume = 0.01;
         window.speechSynthesis.speak(dummyUtterance);
       }
     } catch (e) {
@@ -756,7 +758,10 @@ class QueueEngine {
         console.warn('Audio chime failed:', e);
         resolve();
       }
-   async speakTicketCall(ticketNumber, loketNumber) {
+    });
+  }
+
+  async speakTicketCall(ticketNumber, loketNumber) {
     if (!this.state.settings.voiceEnabled) return;
 
     const callId = Date.now() + '_' + Math.random().toString(36).substr(2, 4);
@@ -907,6 +912,10 @@ function initRealtimeClock() {
   setInterval(update, 1000);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+window.initRealtimeClock = initRealtimeClock;
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initRealtimeClock);
+} else {
   initRealtimeClock();
-});
+}
