@@ -365,7 +365,7 @@ class QueueEngine {
             if (activeForLoket) {
               this.state.lokets[lId].activeTicket = activeForLoket;
               this.state.lokets[lId].status = 'BUSY';
-            } else if (this.state.lokets[lId].activeTicket && (this.state.lokets[lId].activeTicket.status === 'FINISHED' || this.state.lokets[lId].activeTicket.status === 'SKIPPED')) {
+            } else {
               this.state.lokets[lId].activeTicket = null;
               this.state.lokets[lId].status = 'READY';
             }
